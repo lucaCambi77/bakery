@@ -4,7 +4,9 @@
 package it.cambi.hexad.bakery.test;
 
 import java.util.Date;
-import java.util.List;
+import java.util.Set;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * @author luca
@@ -14,7 +16,10 @@ public class BakeryOrder {
 
 	private Long orderId;
 	private Date orderDate;
-	private List<ItemPack> itemPackList;
+
+	@JsonIgnore
+	private Set<ItemOrder> itemOrderList;
+
 	private String paymentType;
 	private String orderStatus;
 	private double orderPrice;
@@ -33,14 +38,6 @@ public class BakeryOrder {
 
 	public void setOrderDate(Date orderDate) {
 		this.orderDate = orderDate;
-	}
-
-	public List<ItemPack> getItemPackList() {
-		return itemPackList;
-	}
-
-	public void setItemPackList(List<ItemPack> itemPackList) {
-		this.itemPackList = itemPackList;
 	}
 
 	public String getPaymentType() {
@@ -65,6 +62,14 @@ public class BakeryOrder {
 
 	public void setOrderPrice(double orderPrice) {
 		this.orderPrice = orderPrice;
+	}
+
+	public Set<ItemOrder> getItemOrderList() {
+		return itemOrderList;
+	}
+
+	public void setItemOrderList(Set<ItemOrder> itemOrderList) {
+		this.itemOrderList = itemOrderList;
 	}
 
 }

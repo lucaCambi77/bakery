@@ -5,6 +5,9 @@ package it.cambi.hexad.bakery.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -42,6 +45,7 @@ public class PackTest {
 	private static List<ItemPack> itemPackList = new ArrayList<ItemPack>();
 	private double finalPrice = 0;
 	private LinkedList<ItemPack> orderItemList;
+	private static DecimalFormat df2 = new DecimalFormat("#.##");
 
 	@Test
 	@Order(1)
@@ -128,9 +132,12 @@ public class PackTest {
 				ItemOrder itemOrder = new ItemOrder();
 				itemOrder.setItemPack(itemPack);
 				itemOrder.setItemPackOrderQuantity(m.getValue());
+				Double roundedPrice = new BigDecimal(m.getValue() * itemPack.getItemPackPrice())
+						.setScale(2, RoundingMode.HALF_UP).doubleValue();
+				itemOrder.setPartialOrderPrice(roundedPrice);
 
 				itemOrderList.add(itemOrder);
-				finalPrice += m.getValue() * itemPack.getItemPackPrice();
+				finalPrice += roundedPrice;
 			});
 
 		});
@@ -146,7 +153,16 @@ public class PackTest {
 
 		itemOrderList.forEach(i -> i.setOrder(order));
 
-		log.info(new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).writeValueAsString(itemOrderList));
+		Map<String, Integer> itemToCountMap = itemOrderList.stream()
+				.collect(Collectors.groupingBy(c -> c.getItemPack().getItem().getItemCode(),
+						Collectors.summingInt(c -> c.getItemPackOrderQuantity() * c.getItemPack().getItemQuantity())));
+
+		BakeryOrderReport report = new BakeryOrderReport();
+		report.setBakeryOrder(order);
+		report.setItemOrderList(itemOrderList);
+		report.setItemToCountMap(itemToCountMap);
+
+		log.info(new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).writeValueAsString(report));
 	}
 
 	/**

@@ -24,6 +24,13 @@
 			<artifactId>slf4j-simple</artifactId>
 			<version>1.7.5</version>
 		</dependency>
+		<!-- Data bind dal core di Jackson -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>2.9.8</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>

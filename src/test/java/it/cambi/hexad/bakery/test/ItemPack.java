@@ -4,11 +4,16 @@
 package it.cambi.hexad.bakery.test;
 
 import java.util.Date;
+import java.util.Set;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
  * @author luca
  *
  */
+@JsonSerialize(using = ItemPackSerializer.class)
 public class ItemPack {
 
 	private Pack pack;
@@ -19,6 +24,8 @@ public class ItemPack {
 	private double itemPackPrice;
 	private int packMinOrderQuantity;
 	private int packMaxOrderQuantity;
+	@JsonIgnore
+	private Set<ItemOrder> itemOrderList;
 
 	public Pack getPack() {
 		return pack;
@@ -82,6 +89,14 @@ public class ItemPack {
 
 	public void setItemPackPrice(double itemPackPrice) {
 		this.itemPackPrice = itemPackPrice;
+	}
+
+	public Set<ItemOrder> getItemOrderList() {
+		return itemOrderList;
+	}
+
+	public void setItemOrderList(Set<ItemOrder> itemOrderList) {
+		this.itemOrderList = itemOrderList;
 	}
 
 }
