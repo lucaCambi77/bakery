@@ -77,7 +77,7 @@ public class PackTest {
 
 		Map<Integer, String> orderRequest = new HashMap<Integer, String>() {
 			{
-				put(13, ItemType.CF.getCode());
+				put(14, ItemType.MB11.getCode());
 			}
 		};
 		Date orderDate = new Date();
@@ -168,7 +168,6 @@ public class PackTest {
 			 * If we can't complete the order at this stage, we poll the queue in order to
 			 * start from next element
 			 */
-			map.remove(currentQuantity);
 			map.pollFirstEntry();
 			currentQuantity = map.firstKey();
 			itemOrderQuantity = o.getKey();
@@ -184,7 +183,7 @@ public class PackTest {
 	 * @param itemList
 	 */
 	private Map<Integer, Integer> packagingWithStack(Entry<Integer, String> o, LinkedList<ItemPack> itemList) {
-		Map<Integer, Integer> map = new HashMap<>();
+		NavigableMap<Integer, Integer> map = new TreeMap<Integer, Integer>(Collections.reverseOrder());
 
 		int i = 0;
 
@@ -217,7 +216,7 @@ public class PackTest {
 				 * skip to next next element
 				 */
 				if (itemOrderQuantity < nextQuantity) {
-					map.remove(nextQuantity);
+					map.pollLastEntry();
 					i++;
 					i++;
 					continue;
@@ -231,7 +230,7 @@ public class PackTest {
 			 * If we can't complete the order at this stage, we pop the stack in order to
 			 * skip to next next element
 			 */
-			map.remove(nextQuantity);
+			map.pollLastEntry();
 			i++;
 			i++;
 
