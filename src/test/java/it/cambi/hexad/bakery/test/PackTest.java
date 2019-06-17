@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Stack;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
@@ -77,7 +76,7 @@ public class PackTest {
 
 		Map<Integer, String> orderRequest = new HashMap<Integer, String>() {
 			{
-				put(14, ItemType.MB11.getCode());
+				put(13, ItemType.CF.getCode());
 			}
 		};
 		Date orderDate = new Date();
@@ -116,8 +115,9 @@ public class PackTest {
 	 * @param o
 	 * @param itemList
 	 */
-	private void packagingWithQueue(Entry<Integer, String> o, LinkedList<ItemPack> itemList) {
+	private Map<Integer, Integer> packagingWithQueue(Entry<Integer, String> o, LinkedList<ItemPack> itemList) {
 		Queue<Integer> queue = new LinkedList<Integer>();
+		Map<Integer, Integer> map = new HashMap<>();
 
 		int i = 0;
 
@@ -128,29 +128,29 @@ public class PackTest {
 		while (i < itemList.size()) {
 
 			int rem = itemOrderQuantity % currentQuantity;
-
-			if (rem == 0) {
-				break;
-			}
-
-			// stack.add(currentQuantity);
-			queue.add(currentQuantity);
 			int quota = itemOrderQuantity / currentQuantity;
+			map.put(currentQuantity, quota);
+
+			if (rem == 0)
+				return map;
+
+			queue.add(currentQuantity);
+
 			itemOrderQuantity -= quota * currentQuantity;
 
 			int tmp = i + 1;
-
+			int nextQuantity = 0;
 			if (tmp < itemList.size()) {
-				int nextQuantity = itemList.get(tmp).getItemQuantity();
+				nextQuantity = itemList.get(tmp).getItemQuantity();
 				queue.add(nextQuantity);
-
 				/**
-				 * If next quantity is greater than remaining quantity, we skip the element
+				 * check if next quantity is greater than remaining quantity
 				 * 
 				 * If we can't complete the order at this stage, we poll the queue in order to
 				 * start from next element
 				 */
 				if (itemOrderQuantity < nextQuantity) {
+					map.remove(currentQuantity);
 					queue.poll();
 					currentQuantity = queue.peek();
 					itemOrderQuantity = o.getKey();
@@ -158,31 +158,35 @@ public class PackTest {
 					continue;
 				}
 
+				quota = itemOrderQuantity / nextQuantity;
+				map.put(nextQuantity, quota);
+
 				int rem1 = itemOrderQuantity % nextQuantity;
 
-				if (rem1 == 0) {
-					break;
-				}
+				if (rem1 == 0)
+					return map;
 
 			}
-
-			itemOrderQuantity = o.getKey();
 			/**
 			 * If we can't complete the order at this stage, we poll the queue in order to
 			 * start from next element
 			 */
+			map.remove(currentQuantity);
+			itemOrderQuantity = o.getKey();
 			queue.poll();
 			currentQuantity = queue.peek();
 			i++;
 		}
+
+		return null;
 	}
 
 	/**
 	 * @param o
 	 * @param itemList
 	 */
-	private void packagingWithStack(Entry<Integer, String> o, LinkedList<ItemPack> itemList) {
-		Stack<Integer> stack = new Stack<Integer>();
+	private Map<Integer, Integer> packagingWithStack(Entry<Integer, String> o, LinkedList<ItemPack> itemList) {
+		Map<Integer, Integer> map = new HashMap<>();
 
 		int i = 0;
 
@@ -192,30 +196,30 @@ public class PackTest {
 
 			Integer currentQuantity = itemList.get(i).getItemQuantity();
 			int rem = itemOrderQuantity % currentQuantity;
-
-			if (rem == 0) {
-				break;
-			}
-
-			// stack.add(currentQuantity);
-			stack.add(currentQuantity);
 			int quota = itemOrderQuantity / currentQuantity;
+			map.put(currentQuantity, quota);
+
+			if (rem == 0)
+				return map;
+
 			itemOrderQuantity -= quota * currentQuantity;
 
 			int tmp = i + 1;
+			int nextQuantity = 0;
 
 			if (tmp < itemList.size()) {
-				int nextQuantity = itemList.get(tmp).getItemQuantity();
-				stack.add(nextQuantity);
+				nextQuantity = itemList.get(tmp).getItemQuantity();
+				quota = itemOrderQuantity / nextQuantity;
+				map.put(nextQuantity, quota);
 
 				/**
-				 * If next quantity is greater than remaining quantity, we skip the element
+				 * Check if next quantity is greater than remaining quantity
 				 * 
 				 * If we can't complete the order at this stage, we pop the stack in order to
 				 * skip to next next element
 				 */
 				if (itemOrderQuantity < nextQuantity) {
-					stack.pop();
+					map.remove(nextQuantity);
 					i++;
 					i++;
 					continue;
@@ -223,19 +227,19 @@ public class PackTest {
 
 				int rem1 = itemOrderQuantity % nextQuantity;
 
-				if (rem1 == 0) {
-					break;
-				}
+				if (rem1 == 0)
+					return map;
 
 			}
 			/**
 			 * If we can't complete the order at this stage, we pop the stack in order to
 			 * skip to next next element
 			 */
-			stack.pop();
+			map.remove(nextQuantity);
 			i++;
 			i++;
 
 		}
+		return null;
 	}
 }
