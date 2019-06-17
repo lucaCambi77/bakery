@@ -96,7 +96,7 @@ public class PackTest {
 
 			double finalPrice = 0;
 
-			// packagingWithQueue(o, itemList);
+			packagingWithQueue(o, itemList);
 			packagingWithStack(o, itemList);
 
 			/*
