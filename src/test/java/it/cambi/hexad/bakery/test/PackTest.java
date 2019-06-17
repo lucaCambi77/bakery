@@ -12,8 +12,10 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Stack;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
@@ -94,52 +96,8 @@ public class PackTest {
 
 			double finalPrice = 0;
 
-			Stack<Integer> stack = new Stack<Integer>();
-
-			Queue<Integer> queue = new LinkedList<Integer>();
-
-			int i = 0;
-
-			Integer itemOrderQuantity = o.getKey();
-
-			while (i < itemList.size()) {
-
-				int rem = itemOrderQuantity % itemList.get(i).getItemQuantity();
-
-				if (rem == 0) {
-					break;
-				}
-
-				int currentQuantity = itemList.get(i).getItemQuantity();
-				stack.add(currentQuantity);
-				queue.add(currentQuantity);
-				int quota = itemOrderQuantity / currentQuantity;
-				itemOrderQuantity -= quota * currentQuantity;
-
-				int tmp = i + 1;
-
-				if (tmp < itemList.size()) {
-					int nextQuantity = itemList.get(tmp).getItemQuantity();
-					stack.add(nextQuantity);
-					queue.add(nextQuantity);
-
-					quota = itemOrderQuantity / nextQuantity;
-					int rem1 = quota % nextQuantity;
-
-					if (rem1 == 0) {
-						break;
-					}
-
-					/**
-					 * If we can't complete the order at this stage, we poll the queue in order to
-					 * start from next element and we pop the stack in order to skip to next element
-					 */
-					stack.pop();
-					queue.poll();
-				}
-
-				i++;
-			}
+			// packagingWithQueue(o, itemList);
+			packagingWithStack(o, itemList);
 
 			/*
 			 * if (itemOrderQuantity > 0) throw new RuntimeException();
@@ -152,5 +110,132 @@ public class PackTest {
 			order.setPaymentType("CREDITCARD");
 		});
 
+	}
+
+	/**
+	 * @param o
+	 * @param itemList
+	 */
+	private void packagingWithQueue(Entry<Integer, String> o, LinkedList<ItemPack> itemList) {
+		Queue<Integer> queue = new LinkedList<Integer>();
+
+		int i = 0;
+
+		Integer itemOrderQuantity = o.getKey();
+
+		Integer currentQuantity = itemList.get(i).getItemQuantity();
+
+		while (i < itemList.size()) {
+
+			int rem = itemOrderQuantity % currentQuantity;
+
+			if (rem == 0) {
+				break;
+			}
+
+			// stack.add(currentQuantity);
+			queue.add(currentQuantity);
+			int quota = itemOrderQuantity / currentQuantity;
+			itemOrderQuantity -= quota * currentQuantity;
+
+			int tmp = i + 1;
+
+			if (tmp < itemList.size()) {
+				int nextQuantity = itemList.get(tmp).getItemQuantity();
+				queue.add(nextQuantity);
+
+				/**
+				 * If next quantity is greater than remaining quantity, we skip the element
+				 * 
+				 * If we can't complete the order at this stage, we poll the queue in order to
+				 * start from next element
+				 */
+				if (itemOrderQuantity < nextQuantity) {
+					queue.poll();
+					currentQuantity = queue.peek();
+					itemOrderQuantity = o.getKey();
+					i++;
+					continue;
+				}
+
+				int rem1 = itemOrderQuantity % nextQuantity;
+
+				if (rem1 == 0) {
+					break;
+				}
+
+			}
+
+			itemOrderQuantity = o.getKey();
+			/**
+			 * If we can't complete the order at this stage, we poll the queue in order to
+			 * start from next element
+			 */
+			queue.poll();
+			currentQuantity = queue.peek();
+			i++;
+		}
+	}
+
+	/**
+	 * @param o
+	 * @param itemList
+	 */
+	private void packagingWithStack(Entry<Integer, String> o, LinkedList<ItemPack> itemList) {
+		Stack<Integer> stack = new Stack<Integer>();
+
+		int i = 0;
+
+		Integer itemOrderQuantity = o.getKey();
+
+		while (i < itemList.size()) {
+
+			Integer currentQuantity = itemList.get(i).getItemQuantity();
+			int rem = itemOrderQuantity % currentQuantity;
+
+			if (rem == 0) {
+				break;
+			}
+
+			// stack.add(currentQuantity);
+			stack.add(currentQuantity);
+			int quota = itemOrderQuantity / currentQuantity;
+			itemOrderQuantity -= quota * currentQuantity;
+
+			int tmp = i + 1;
+
+			if (tmp < itemList.size()) {
+				int nextQuantity = itemList.get(tmp).getItemQuantity();
+				stack.add(nextQuantity);
+
+				/**
+				 * If next quantity is greater than remaining quantity, we skip the element
+				 * 
+				 * If we can't complete the order at this stage, we pop the stack in order to
+				 * skip to next next element
+				 */
+				if (itemOrderQuantity < nextQuantity) {
+					stack.pop();
+					i++;
+					i++;
+					continue;
+				}
+
+				int rem1 = itemOrderQuantity % nextQuantity;
+
+				if (rem1 == 0) {
+					break;
+				}
+
+			}
+			/**
+			 * If we can't complete the order at this stage, we pop the stack in order to
+			 * skip to next next element
+			 */
+			stack.pop();
+			i++;
+			i++;
+
+		}
 	}
 }
