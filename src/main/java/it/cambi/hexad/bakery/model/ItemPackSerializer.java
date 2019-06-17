@@ -4,9 +4,6 @@
 package it.cambi.hexad.bakery.model;
 
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Locale;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -18,6 +15,11 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
  *
  */
 public class ItemPackSerializer extends StdSerializer<ItemPack> {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -1265786048973236060L;
 
 	public ItemPackSerializer() {
 		this(null);
