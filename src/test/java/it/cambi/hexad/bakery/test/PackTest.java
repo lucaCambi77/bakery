@@ -3,6 +3,8 @@
  */
 package it.cambi.hexad.bakery.test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -22,12 +24,19 @@ import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.junit4.SpringRunner;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,6 +55,7 @@ import it.cambi.hexad.bakery.report.BakeryOrderReport;
  * @author luca
  *
  */
+@RunWith(SpringRunner.class)
 @SpringBootTest(classes = { Application.class }, webEnvironment = WebEnvironment.RANDOM_PORT)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class PackTest {
@@ -54,6 +64,12 @@ public class PackTest {
 	private static List<ItemPack> itemPackList = new ArrayList<ItemPack>();
 	private double finalPrice = 0;
 	private LinkedList<ItemPack> orderItemList;
+
+	@Autowired
+	private TestRestTemplate restTemplate;
+
+	@LocalServerPort
+	private int port;
 
 	@SuppressWarnings("serial")
 	private static Map<String, Map<Integer, Integer>> solutionMap = new HashMap<String, Map<Integer, Integer>>() {
@@ -155,7 +171,19 @@ public class PackTest {
 		});
 	}
 
+	@Test
+	public void testRestGreeting() throws Exception {
+		ResponseEntity<String> entity = restTemplate.getForEntity("http://localhost:" + this.port + "/", String.class);
+		assertEquals(HttpStatus.OK, entity.getStatusCode());
+	}
+
 	/**
+	 * Method to process the order.
+	 * 
+	 * Every product is processed , all possible packaging are evaluated and finally
+	 * the minimal number of pack is preferred. We create the order and also a final
+	 * report with all the information about prices and item packaging
+	 * 
 	 * @param orderRequest
 	 * @throws JsonProcessingException
 	 */
@@ -234,7 +262,7 @@ public class PackTest {
 	}
 
 	/**
-	 * @param o
+	 * @param key
 	 * @param itemList
 	 */
 	private Map<Integer, Integer> packagingWithQueue(Integer key, LinkedList<ItemPack> itemList) {
@@ -299,7 +327,7 @@ public class PackTest {
 	}
 
 	/**
-	 * @param o
+	 * @param key
 	 * @param itemList
 	 */
 	private Map<Integer, Integer> packagingWithStack(Integer key, LinkedList<ItemPack> itemList) {
