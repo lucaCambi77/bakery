@@ -1,7 +1,7 @@
 /**
  * 
  */
-package it.cambi.hexad.bakery.test;
+package it.cambi.hexad.bakery.model;
 
 import java.io.IOException;
 import java.text.DateFormat;

@@ -1,7 +1,7 @@
 /**
  * 
  */
-package it.cambi.hexad.bakery.test;
+package it.cambi.hexad.bakery.model;
 
 import java.util.Date;
 import java.util.Set;

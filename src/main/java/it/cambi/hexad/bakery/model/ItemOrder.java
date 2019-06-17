@@ -1,7 +1,7 @@
 /**
  * 
  */
-package it.cambi.hexad.bakery.test;
+package it.cambi.hexad.bakery.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 

@@ -1,7 +1,7 @@
 /**
  * 
  */
-package it.cambi.hexad.bakery.test;
+package it.cambi.hexad.bakery.enums;
 
 import java.util.LinkedHashMap;
 

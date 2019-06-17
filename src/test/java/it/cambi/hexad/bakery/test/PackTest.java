@@ -34,6 +34,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import it.cambi.hexad.bakery.enums.ItemType;
+import it.cambi.hexad.bakery.model.BakeryOrder;
+import it.cambi.hexad.bakery.model.Item;
+import it.cambi.hexad.bakery.model.ItemOrder;
+import it.cambi.hexad.bakery.model.ItemPack;
+import it.cambi.hexad.bakery.model.Pack;
+import it.cambi.hexad.bakery.report.BakeryOrderReport;
+
 /**
  * @author luca
  *
@@ -95,7 +103,8 @@ public class PackTest {
 				put(14, ItemType.MB11.getCode());
 			}
 		};
-		getBakeryOrder(orderRequest);
+		
+		setBakeryOrder(orderRequest);
 
 	}
 
@@ -103,7 +112,7 @@ public class PackTest {
 	 * @param orderRequest
 	 * @throws JsonProcessingException
 	 */
-	private void getBakeryOrder(Map<Integer, String> orderRequest) throws JsonProcessingException {
+	private void setBakeryOrder(Map<Integer, String> orderRequest) throws JsonProcessingException {
 		Date orderDate = new Date();
 		AtomicLong count = new AtomicLong();
 

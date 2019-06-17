@@ -1,10 +1,13 @@
 /**
  * 
  */
-package it.cambi.hexad.bakery.test;
+package it.cambi.hexad.bakery.report;
 
 import java.util.List;
 import java.util.Map;
+
+import it.cambi.hexad.bakery.model.BakeryOrder;
+import it.cambi.hexad.bakery.model.ItemOrder;
 
 /**
  * @author luca
