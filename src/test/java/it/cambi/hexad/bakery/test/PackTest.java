@@ -34,6 +34,7 @@ public class PackTest {
 
 	private static final Logger log = LoggerFactory.getLogger(PackTest.class);
 	private static List<ItemPack> itemPackList = new ArrayList<ItemPack>();
+	private double finalPrice = 0;
 
 	@Test
 	@Order(1)
@@ -83,6 +84,14 @@ public class PackTest {
 				put(14, ItemType.MB11.getCode());
 			}
 		};
+		getBakeryOrder(orderRequest);
+
+	}
+
+	/**
+	 * @param orderRequest
+	 */
+	private void getBakeryOrder(Map<Integer, String> orderRequest) {
 		Date orderDate = new Date();
 
 		List<ItemOrder> itemOrderList = new ArrayList<>();
@@ -94,24 +103,15 @@ public class PackTest {
 					.sorted(Comparator.comparingInt(ItemPack::getItemQuantity).reversed())
 					.collect(Collectors.toCollection(LinkedList::new));
 
-			double finalPrice = 0;
 			Map<Integer, Integer> map;
 
-			map = packagingWithQueue(o, itemList);
+			Map<Integer, Integer> mapQueue = packagingWithQueue(o, itemList);
+			Map<Integer, Integer> mapStack = packagingWithStack(o, itemList);
 
-			if (null == map)
-				map = packagingWithStack(o, itemList);
+			if (mapQueue.size() == 0 && mapStack.size() == 0)
+				throw new RuntimeException("Order is not possible. No packaging available");
 
-			if (null == map)
-				throw new RuntimeException();
-
-			BakeryOrder order = new BakeryOrder();
-
-			order.setOrderId(1L);
-			order.setOrderPrice(finalPrice);
-			order.setOrderDate(orderDate);
-			order.setOrderStatus("RECEIVED");
-			order.setPaymentType("CREDITCARD");
+			map = mapQueue.size() < mapStack.size() ? mapQueue : mapStack;
 
 			map.entrySet().stream().forEach(m -> {
 				ItemPack itemPack = itemList.stream().filter(p -> p.getItemQuantity() == m.getKey()).findFirst()
@@ -119,14 +119,25 @@ public class PackTest {
 
 				ItemOrder itemOrder = new ItemOrder();
 				itemOrder.setItemPack(itemPack);
-				itemOrder.setOrder(order);
 				itemOrder.setItemPackOrderQuantity(m.getValue());
 
 				itemOrderList.add(itemOrder);
+				finalPrice += m.getValue() * itemPack.getItemPackPrice();
 			});
 
-		});
+			BakeryOrder order = new BakeryOrder();
 
+			order.setOrderId(1L);
+			order.setOrderPrice(finalPrice);
+			order.setOrderDate(orderDate);
+			order.setItemPackList(itemList);
+			order.setOrderStatus("RECEIVED");
+			order.setPaymentType("CREDITCARD");
+
+			itemOrderList.forEach(i -> i.setOrder(order));
+			
+			
+		});
 	}
 
 	/**
@@ -191,7 +202,7 @@ public class PackTest {
 			i++;
 		}
 
-		return null;
+		return new HashMap<Integer, Integer>();
 	}
 
 	/**
@@ -251,6 +262,6 @@ public class PackTest {
 			i++;
 
 		}
-		return null;
+		return new HashMap<Integer, Integer>();
 	}
 }
