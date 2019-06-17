@@ -6,6 +6,7 @@ package it.cambi.hexad.bakery.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -13,8 +14,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.Stack;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
@@ -102,6 +103,7 @@ public class PackTest {
 			 * if (itemOrderQuantity > 0) throw new RuntimeException();
 			 */
 
+			order.setOrderId(1L);
 			order.setOrderPrice(finalPrice);
 			order.setItemPackList(orderItemPackList);
 			order.setOrderDate(orderDate);
@@ -116,9 +118,8 @@ public class PackTest {
 	 * @param itemList
 	 */
 	private Map<Integer, Integer> packagingWithQueue(Entry<Integer, String> o, LinkedList<ItemPack> itemList) {
-		Queue<Integer> queue = new LinkedList<Integer>();
-		Map<Integer, Integer> map = new HashMap<>();
 
+		NavigableMap<Integer, Integer> map = new TreeMap<Integer, Integer>(Collections.reverseOrder());
 		int i = 0;
 
 		Integer itemOrderQuantity = o.getKey();
@@ -134,15 +135,14 @@ public class PackTest {
 			if (rem == 0)
 				return map;
 
-			queue.add(currentQuantity);
-
 			itemOrderQuantity -= quota * currentQuantity;
 
 			int tmp = i + 1;
 			int nextQuantity = 0;
 			if (tmp < itemList.size()) {
 				nextQuantity = itemList.get(tmp).getItemQuantity();
-				queue.add(nextQuantity);
+				map.put(nextQuantity, 0);
+
 				/**
 				 * check if next quantity is greater than remaining quantity
 				 * 
@@ -150,9 +150,8 @@ public class PackTest {
 				 * start from next element
 				 */
 				if (itemOrderQuantity < nextQuantity) {
-					map.remove(currentQuantity);
-					queue.poll();
-					currentQuantity = queue.peek();
+					map.pollFirstEntry();
+					currentQuantity = map.firstKey();
 					itemOrderQuantity = o.getKey();
 					i++;
 					continue;
@@ -161,9 +160,7 @@ public class PackTest {
 				quota = itemOrderQuantity / nextQuantity;
 				map.put(nextQuantity, quota);
 
-				int rem1 = itemOrderQuantity % nextQuantity;
-
-				if (rem1 == 0)
+				if (itemOrderQuantity % nextQuantity == 0)
 					return map;
 
 			}
@@ -172,9 +169,10 @@ public class PackTest {
 			 * start from next element
 			 */
 			map.remove(currentQuantity);
+			map.pollFirstEntry();
+			currentQuantity = map.firstKey();
 			itemOrderQuantity = o.getKey();
-			queue.poll();
-			currentQuantity = queue.peek();
+
 			i++;
 		}
 
@@ -225,9 +223,7 @@ public class PackTest {
 					continue;
 				}
 
-				int rem1 = itemOrderQuantity % nextQuantity;
-
-				if (rem1 == 0)
+				if (itemOrderQuantity % nextQuantity == 0)
 					return map;
 
 			}
