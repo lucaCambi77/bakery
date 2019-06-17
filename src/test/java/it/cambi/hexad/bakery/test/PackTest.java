@@ -10,12 +10,14 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
@@ -24,6 +26,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 /**
  * @author luca
@@ -35,6 +41,7 @@ public class PackTest {
 	private static final Logger log = LoggerFactory.getLogger(PackTest.class);
 	private static List<ItemPack> itemPackList = new ArrayList<ItemPack>();
 	private double finalPrice = 0;
+	private LinkedList<ItemPack> orderItemList;
 
 	@Test
 	@Order(1)
@@ -77,7 +84,7 @@ public class PackTest {
 	@SuppressWarnings("serial")
 	@Test
 	@Order(2)
-	public void testBakerOrder() {
+	public void testBakerOrder() throws JsonProcessingException {
 
 		Map<Integer, String> orderRequest = new HashMap<Integer, String>() {
 			{
@@ -90,23 +97,24 @@ public class PackTest {
 
 	/**
 	 * @param orderRequest
+	 * @throws JsonProcessingException
 	 */
-	private void getBakeryOrder(Map<Integer, String> orderRequest) {
+	private void getBakeryOrder(Map<Integer, String> orderRequest) throws JsonProcessingException {
 		Date orderDate = new Date();
+		AtomicLong count = new AtomicLong();
 
 		List<ItemOrder> itemOrderList = new ArrayList<>();
 
 		orderRequest.entrySet().forEach(o -> {
 
-			LinkedList<ItemPack> itemList = itemPackList.stream()
-					.filter(i -> i.getItem().getItemCode().equals(o.getValue()))
+			orderItemList = itemPackList.stream().filter(i -> i.getItem().getItemCode().equals(o.getValue()))
 					.sorted(Comparator.comparingInt(ItemPack::getItemQuantity).reversed())
 					.collect(Collectors.toCollection(LinkedList::new));
 
 			Map<Integer, Integer> map;
 
-			Map<Integer, Integer> mapQueue = packagingWithQueue(o, itemList);
-			Map<Integer, Integer> mapStack = packagingWithStack(o, itemList);
+			Map<Integer, Integer> mapQueue = packagingWithQueue(o, orderItemList);
+			Map<Integer, Integer> mapStack = packagingWithStack(o, orderItemList);
 
 			if (mapQueue.size() == 0 && mapStack.size() == 0)
 				throw new RuntimeException("Order is not possible. No packaging available");
@@ -114,7 +122,7 @@ public class PackTest {
 			map = mapQueue.size() < mapStack.size() ? mapQueue : mapStack;
 
 			map.entrySet().stream().forEach(m -> {
-				ItemPack itemPack = itemList.stream().filter(p -> p.getItemQuantity() == m.getKey()).findFirst()
+				ItemPack itemPack = orderItemList.stream().filter(p -> p.getItemQuantity() == m.getKey()).findFirst()
 						.orElse(null);
 
 				ItemOrder itemOrder = new ItemOrder();
@@ -125,19 +133,20 @@ public class PackTest {
 				finalPrice += m.getValue() * itemPack.getItemPackPrice();
 			});
 
-			BakeryOrder order = new BakeryOrder();
-
-			order.setOrderId(1L);
-			order.setOrderPrice(finalPrice);
-			order.setOrderDate(orderDate);
-			order.setItemPackList(itemList);
-			order.setOrderStatus("RECEIVED");
-			order.setPaymentType("CREDITCARD");
-
-			itemOrderList.forEach(i -> i.setOrder(order));
-			
-			
 		});
+
+		BakeryOrder order = new BakeryOrder();
+
+		order.setOrderId(count.incrementAndGet());
+		order.setOrderPrice(finalPrice);
+		order.setOrderDate(orderDate);
+		order.setItemOrderList(new HashSet<ItemOrder>(itemOrderList));
+		order.setOrderStatus("RECEIVED");
+		order.setPaymentType("CREDITCARD");
+
+		itemOrderList.forEach(i -> i.setOrder(order));
+
+		log.info(new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).writeValueAsString(itemOrderList));
 	}
 
 	/**
