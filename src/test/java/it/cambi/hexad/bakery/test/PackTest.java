@@ -39,10 +39,13 @@ public class PackTest {
 	@Order(1)
 	public void createItemPackList() {
 
+		/**
+		 * We assume for purpose of test the same packaging for every item
+		 */
 		Pack packTest = new Pack();
 		packTest.setPackId(1L);
 		packTest.setPackType("CARDBOARD");
-		packTest.setWeight(200.40);
+		packTest.setWeight(11.02);
 
 		Date dateStart = new Date();
 
@@ -82,12 +85,9 @@ public class PackTest {
 		};
 		Date orderDate = new Date();
 
-		List<ItemPack> orderItemPackList = new ArrayList<>();
 		List<ItemOrder> itemOrderList = new ArrayList<>();
 
 		orderRequest.entrySet().forEach(o -> {
-
-			BakeryOrder order = new BakeryOrder();
 
 			LinkedList<ItemPack> itemList = itemPackList.stream()
 					.filter(i -> i.getItem().getItemCode().equals(o.getValue()))
@@ -95,20 +95,36 @@ public class PackTest {
 					.collect(Collectors.toCollection(LinkedList::new));
 
 			double finalPrice = 0;
+			Map<Integer, Integer> map;
 
-			packagingWithQueue(o, itemList);
-			packagingWithStack(o, itemList);
+			map = packagingWithQueue(o, itemList);
 
-			/*
-			 * if (itemOrderQuantity > 0) throw new RuntimeException();
-			 */
+			if (null == map)
+				map = packagingWithStack(o, itemList);
+
+			if (null == map)
+				throw new RuntimeException();
+
+			BakeryOrder order = new BakeryOrder();
 
 			order.setOrderId(1L);
 			order.setOrderPrice(finalPrice);
-			order.setItemPackList(orderItemPackList);
 			order.setOrderDate(orderDate);
 			order.setOrderStatus("RECEIVED");
 			order.setPaymentType("CREDITCARD");
+
+			map.entrySet().stream().forEach(m -> {
+				ItemPack itemPack = itemList.stream().filter(p -> p.getItemQuantity() == m.getKey()).findFirst()
+						.orElse(null);
+
+				ItemOrder itemOrder = new ItemOrder();
+				itemOrder.setItemPack(itemPack);
+				itemOrder.setOrder(order);
+				itemOrder.setItemPackOrderQuantity(m.getValue());
+
+				itemOrderList.add(itemOrder);
+			});
+
 		});
 
 	}
