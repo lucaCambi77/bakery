@@ -3,8 +3,6 @@
  */
 package it.cambi.hexad.bakery.test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -16,23 +14,26 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.Assert;
+import org.junit.FixMethodOrder;
+import org.junit.Test;
+import org.junit.runners.MethodSorters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.core.annotation.Order;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import it.cambi.hexad.bakery.application.Application;
 import it.cambi.hexad.bakery.enums.ItemType;
 import it.cambi.hexad.bakery.model.BakeryOrder;
 import it.cambi.hexad.bakery.model.Item;
@@ -45,13 +46,42 @@ import it.cambi.hexad.bakery.report.BakeryOrderReport;
  * @author luca
  *
  */
-@TestMethodOrder(OrderAnnotation.class)
+@SpringBootTest(classes = { Application.class }, webEnvironment = WebEnvironment.RANDOM_PORT)
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class PackTest {
 
 	private static final Logger log = LoggerFactory.getLogger(PackTest.class);
 	private static List<ItemPack> itemPackList = new ArrayList<ItemPack>();
 	private double finalPrice = 0;
 	private LinkedList<ItemPack> orderItemList;
+
+	@SuppressWarnings("serial")
+	private static Map<String, Map<Integer, Integer>> solutionMap = new HashMap<String, Map<Integer, Integer>>() {
+		{
+			put(ItemType.MB11.getCode(), new HashMap<Integer, Integer>() {
+				{
+					put(8, 1);
+					put(2, 3);
+
+				}
+			});
+
+			put(ItemType.VS5.getCode(), new HashMap<Integer, Integer>() {
+				{
+					put(5, 2);
+
+				}
+			});
+
+			put(ItemType.CF.getCode(), new HashMap<Integer, Integer>() {
+				{
+					put(5, 2);
+					put(3, 1);
+
+				}
+			});
+		}
+	};
 
 	@Test
 	@Order(1)
@@ -88,7 +118,7 @@ public class PackTest {
 
 		}
 
-		assertEquals(8, itemPackList.size());
+		Assert.assertEquals(8, itemPackList.size());
 	}
 
 	@SuppressWarnings("serial")
@@ -96,41 +126,71 @@ public class PackTest {
 	@Order(2)
 	public void testBakerOrder() throws JsonProcessingException {
 
-		Map<Integer, String> orderRequest = new HashMap<Integer, String>() {
+		NavigableMap<String, Integer> orderRequest = new TreeMap<String, Integer>() {
 			{
-				put(14, ItemType.MB11.getCode());
+				{
+					{
+						put(ItemType.MB11.getCode(), 14);
+						put(ItemType.VS5.getCode(), 10);
+						put(ItemType.CF.getCode(), 13);
+
+					}
+				}
 			}
 		};
 
-		setBakeryOrder(orderRequest);
+		BakeryOrderReport report = setBakeryOrder(orderRequest);
 
+		List<ItemOrder> itemOrderList = report.getItemOrderList();
+
+		solutionMap.entrySet().forEach(m -> {
+			m.getValue().entrySet().forEach(m1 -> {
+				ItemOrder itemOrder = itemOrderList.stream()
+						.filter(i -> i.getItemPack().getItem().getItemCode().equals(m.getKey()))
+						.filter(i -> i.getItemPack().getItemQuantity() == m1.getKey()).findFirst().orElse(null);
+
+				Assert.assertNotNull(itemOrder);
+				Assert.assertEquals(itemOrder.getItemPackOrderQuantity(), m1.getValue());
+			});
+		});
 	}
 
 	/**
 	 * @param orderRequest
 	 * @throws JsonProcessingException
 	 */
-	private BakeryOrderReport setBakeryOrder(Map<Integer, String> orderRequest) throws JsonProcessingException {
+	private BakeryOrderReport setBakeryOrder(Map<String, Integer> orderRequest) throws JsonProcessingException {
 		Date orderDate = new Date();
 		AtomicLong count = new AtomicLong();
 
-		List<ItemOrder> itemOrderList = new ArrayList<>();
+		LinkedList<ItemOrder> itemOrderList = new LinkedList<>();
 
 		orderRequest.entrySet().forEach(o -> {
 
-			orderItemList = itemPackList.stream().filter(i -> i.getItem().getItemCode().equals(o.getValue()))
+			orderItemList = itemPackList.stream().filter(i -> i.getItem().getItemCode().equals(o.getKey()))
 					.sorted(Comparator.comparingInt(ItemPack::getItemQuantity).reversed())
 					.collect(Collectors.toCollection(LinkedList::new));
 
 			Map<Integer, Integer> map;
 
-			Map<Integer, Integer> mapQueue = packagingWithQueue(o, orderItemList);
-			Map<Integer, Integer> mapStack = packagingWithStack(o, orderItemList);
+			Map<Integer, Integer> mapQueue = packagingWithQueue(o.getValue(), orderItemList);
+			Map<Integer, Integer> mapStack = packagingWithStack(o.getValue(), orderItemList);
 
 			if (mapQueue.size() == 0 && mapStack.size() == 0)
 				throw new RuntimeException("Order is not possible. No packaging available");
 
-			map = mapQueue.size() < mapStack.size() ? mapQueue : mapStack;
+			/**
+			 * If both maps have size greater than zero, i'll get the smallest. Otherwise
+			 * i'll get the one that has size greater than zero
+			 */
+			if (mapQueue.size() > 0 && mapStack.size() > 0) {
+				map = mapQueue.size() < mapStack.size() ? mapQueue : mapStack;
+			} else if (mapQueue.size() == 0 && mapStack.size() > 0) {
+				map = mapStack;
+			} else {
+				map = mapQueue;
+
+			}
 
 			map.entrySet().stream().forEach(m -> {
 				ItemPack itemPack = orderItemList.stream().filter(p -> p.getItemQuantity() == m.getKey()).findFirst()
@@ -152,7 +212,7 @@ public class PackTest {
 		BakeryOrder order = new BakeryOrder();
 
 		order.setOrderId(count.incrementAndGet());
-		order.setOrderPrice(finalPrice);
+		order.setOrderPrice(new BigDecimal(finalPrice).setScale(2, RoundingMode.HALF_UP).doubleValue());
 		order.setOrderDate(orderDate);
 		order.setItemOrderList(new HashSet<ItemOrder>(itemOrderList));
 		order.setOrderStatus("RECEIVED");
@@ -177,12 +237,12 @@ public class PackTest {
 	 * @param o
 	 * @param itemList
 	 */
-	private Map<Integer, Integer> packagingWithQueue(Entry<Integer, String> o, LinkedList<ItemPack> itemList) {
+	private Map<Integer, Integer> packagingWithQueue(Integer key, LinkedList<ItemPack> itemList) {
 
 		NavigableMap<Integer, Integer> map = new TreeMap<Integer, Integer>(Collections.reverseOrder());
 		int i = 0;
 
-		Integer itemOrderQuantity = o.getKey();
+		Integer itemOrderQuantity = key;
 
 		Integer currentQuantity = itemList.get(i).getItemQuantity();
 
@@ -212,7 +272,7 @@ public class PackTest {
 				if (itemOrderQuantity < nextQuantity) {
 					map.pollFirstEntry();
 					currentQuantity = map.firstKey();
-					itemOrderQuantity = o.getKey();
+					itemOrderQuantity = key;
 					i++;
 					continue;
 				}
@@ -230,7 +290,7 @@ public class PackTest {
 			 */
 			map.pollFirstEntry();
 			currentQuantity = map.firstKey();
-			itemOrderQuantity = o.getKey();
+			itemOrderQuantity = key;
 
 			i++;
 		}
@@ -242,12 +302,12 @@ public class PackTest {
 	 * @param o
 	 * @param itemList
 	 */
-	private Map<Integer, Integer> packagingWithStack(Entry<Integer, String> o, LinkedList<ItemPack> itemList) {
+	private Map<Integer, Integer> packagingWithStack(Integer key, LinkedList<ItemPack> itemList) {
 		NavigableMap<Integer, Integer> map = new TreeMap<Integer, Integer>(Collections.reverseOrder());
 
 		int i = 0;
 
-		Integer itemOrderQuantity = o.getKey();
+		Integer itemOrderQuantity = key;
 
 		while (i < itemList.size()) {
 
