@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -53,7 +52,6 @@ public class PackTest {
 	private static List<ItemPack> itemPackList = new ArrayList<ItemPack>();
 	private double finalPrice = 0;
 	private LinkedList<ItemPack> orderItemList;
-	private static DecimalFormat df2 = new DecimalFormat("#.##");
 
 	@Test
 	@Order(1)
@@ -103,7 +101,7 @@ public class PackTest {
 				put(14, ItemType.MB11.getCode());
 			}
 		};
-		
+
 		setBakeryOrder(orderRequest);
 
 	}
@@ -112,7 +110,7 @@ public class PackTest {
 	 * @param orderRequest
 	 * @throws JsonProcessingException
 	 */
-	private void setBakeryOrder(Map<Integer, String> orderRequest) throws JsonProcessingException {
+	private BakeryOrderReport setBakeryOrder(Map<Integer, String> orderRequest) throws JsonProcessingException {
 		Date orderDate = new Date();
 		AtomicLong count = new AtomicLong();
 
@@ -172,6 +170,7 @@ public class PackTest {
 		report.setItemToCountMap(itemToCountMap);
 
 		log.info(new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).writeValueAsString(report));
+		return report;
 	}
 
 	/**
