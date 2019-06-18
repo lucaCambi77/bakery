@@ -62,7 +62,7 @@ public class OrderService {
 	public BakeryOrderReport setBakeryOrder(Map<String, Integer> orderRequest) throws JsonProcessingException {
 
 		if (null == orderRequest)
-			throw new BakeryException("Order cannot be empty!");
+			throw new BakeryException("Order can't be empty!");
 
 		Date orderDate = new Date();
 
@@ -81,7 +81,7 @@ public class OrderService {
 			Map<Integer, Integer> mapStack = packagingWithStack(o.getValue(), orderItemList);
 
 			if (mapQueue.size() == 0 && mapStack.size() == 0)
-				throw new RuntimeException("Order is not possible. No packaging available");
+				throw new RuntimeException("Can't process order. No packaging available");
 
 			/**
 			 * If both maps have size greater than zero, i'll get the smallest. Otherwise
