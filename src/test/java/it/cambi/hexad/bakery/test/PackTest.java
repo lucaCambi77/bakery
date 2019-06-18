@@ -42,6 +42,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import it.cambi.hexad.bakery.application.AppConfiguration;
 import it.cambi.hexad.bakery.application.Application;
 import it.cambi.hexad.bakery.enums.ItemType;
 import it.cambi.hexad.bakery.model.BakeryOrder;
@@ -56,7 +57,7 @@ import it.cambi.hexad.bakery.report.BakeryOrderReport;
  *
  */
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = { Application.class }, webEnvironment = WebEnvironment.RANDOM_PORT)
+@SpringBootTest(classes = { Application.class, AppConfiguration.class }, webEnvironment = WebEnvironment.RANDOM_PORT)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class PackTest {
 
@@ -64,6 +65,9 @@ public class PackTest {
 	private static List<ItemPack> itemPackList = new ArrayList<ItemPack>();
 	private double finalPrice = 0;
 	private LinkedList<ItemPack> orderItemList;
+
+	@Autowired
+	private ObjectMapper objectMapper;
 
 	@Autowired
 	private TestRestTemplate restTemplate;
@@ -257,7 +261,7 @@ public class PackTest {
 		report.setItemOrderList(itemOrderList);
 		report.setItemToCountMap(itemToCountMap);
 
-		log.info(new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).writeValueAsString(report));
+		log.info(objectMapper.enable(SerializationFeature.INDENT_OUTPUT).writeValueAsString(report));
 		return report;
 	}
 
