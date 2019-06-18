@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
  * @author luca
  *
  */
-@JsonSerialize(using = ItemPackSerializer.class)
 public class ItemPack {
 
 	private Pack pack;

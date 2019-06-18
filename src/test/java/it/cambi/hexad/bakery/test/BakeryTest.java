@@ -58,6 +58,19 @@ public class BakeryTest {
 	@LocalServerPort
 	private int port;
 
+	private static NavigableMap<String, Integer> orderRequest = new TreeMap<String, Integer>() {
+		{
+			{
+				{
+					put(ItemType.MB11.getCode(), 14);
+					put(ItemType.VS5.getCode(), 10);
+					put(ItemType.CF.getCode(), 13);
+
+				}
+			}
+		}
+	};
+
 	private static Map<String, Map<Integer, Integer>> solutionMap = new HashMap<String, Map<Integer, Integer>>() {
 		{
 			put(ItemType.MB11.getCode(), new HashMap<Integer, Integer>() {
@@ -94,19 +107,6 @@ public class BakeryTest {
 	@Test
 	public void testBakeryOrder() throws JsonProcessingException {
 
-		NavigableMap<String, Integer> orderRequest = new TreeMap<String, Integer>() {
-			{
-				{
-					{
-						put(ItemType.MB11.getCode(), 14);
-						put(ItemType.VS5.getCode(), 10);
-						put(ItemType.CF.getCode(), 13);
-
-					}
-				}
-			}
-		};
-
 		BakeryOrderReport report = orderService.setBakeryOrder(orderRequest);
 
 		testOrderResponse(orderRequest, report);
@@ -140,18 +140,6 @@ public class BakeryTest {
 	@Test
 	public void testRestBakeryOrder() throws Exception {
 		BakeryOrderReport report = new BakeryOrderReport();
-		NavigableMap<String, Integer> orderRequest = new TreeMap<String, Integer>() {
-			{
-				{
-					{
-						put(ItemType.MB11.getCode(), 14);
-						put(ItemType.VS5.getCode(), 10);
-						put(ItemType.CF.getCode(), 13);
-
-					}
-				}
-			}
-		};
 
 		report.setItemToCountMap(orderRequest);
 
@@ -161,7 +149,33 @@ public class BakeryTest {
 				.postForEntity("http://localhost:" + this.port + "/order", request, BakeryOrderReport.class);
 		assertEquals(HttpStatus.OK, entity.getStatusCode());
 
-		// testOrderResponse(orderRequest, entity.getBody());
+	}
+
+	/**
+	 * Test order
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testRestBakeryWrongOrder() throws Exception {
+		BakeryOrderReport report = new BakeryOrderReport();
+
+		report.setItemToCountMap(new TreeMap<String, Integer>() {
+			{
+				{
+					{
+						put(ItemType.VS5.getCode(), 7);
+
+					}
+				}
+			}
+		});
+
+		HttpEntity<BakeryOrderReport> request = new HttpEntity<BakeryOrderReport>(report);
+
+		ResponseEntity<BakeryOrderReport> entity = restTemplate
+				.postForEntity("http://localhost:" + this.port + "/order", request, BakeryOrderReport.class);
+		assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, entity.getStatusCode());
 
 	}
 

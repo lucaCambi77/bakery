@@ -14,30 +14,30 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
  * @author luca
  *
  */
-public class ItemPackSerializer extends StdSerializer<ItemPack> {
+public class ItemOrderSerializer extends StdSerializer<ItemOrder> {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = -1265786048973236060L;
 
-	public ItemPackSerializer() {
+	public ItemOrderSerializer() {
 		this(null);
 	}
 
-	public ItemPackSerializer(Class<ItemPack> t) {
+	public ItemOrderSerializer(Class<ItemOrder> t) {
 		super(t);
 	}
 
 	@Override
-	public void serialize(ItemPack value, JsonGenerator jgen, SerializerProvider provider)
+	public void serialize(ItemOrder value, JsonGenerator jgen, SerializerProvider provider)
 			throws IOException, JsonProcessingException {
 
 		jgen.writeStartObject();
-		jgen.writeStringField("itemCode", value.getItem().getItemCode());
-		jgen.writeStringField("description", value.getItem().getDescription());
-		jgen.writeNumberField("itemQuantity", value.getItemQuantity());
-		jgen.writeNumberField("itemPackPrice", value.getItemPackPrice());
+		jgen.writeStringField("itemCode", value.getItemPack().getItem().getItemCode());
+		jgen.writeNumberField("partialOrderPrice", value.getPartialOrderPrice());
+		jgen.writeStringField("itemQuantity",
+				value.getItemPackOrderQuantity() + " x " + value.getItemPack().getItemQuantity());
 
 		jgen.writeEndObject();
 	}

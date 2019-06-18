@@ -4,11 +4,13 @@
 package it.cambi.hexad.bakery.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
  * @author luca
  *
  */
+@JsonSerialize(using = ItemOrderSerializer.class)
 public class ItemOrder {
 
 	@JsonIgnore
