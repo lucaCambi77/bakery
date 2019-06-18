@@ -28,8 +28,3 @@ To request an order to the application with following json as sample (applicatio
 
 If the order is completed, you will receive a report with all the information about prices and packaging
 
-
-
-
-
-
