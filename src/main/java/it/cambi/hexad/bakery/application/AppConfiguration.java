@@ -41,14 +41,14 @@ public class AppConfiguration {
 		return new OrderService();
 	}
 
-    @Bean
-    public CollectionBeans getCollectionsBean() {
-        return new CollectionBeans();
-    }
-    
+	@Bean
+	public CollectionBeans getCollectionsBean() {
+		return new CollectionBeans();
+	}
+
 	@Bean
 	@Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-	public List<ItemPack> itemPackList() {
+	public List<ItemPack> getItemPackList() {
 
 		List<ItemPack> itemPackList = new ArrayList<ItemPack>();
 

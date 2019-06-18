@@ -18,4 +18,12 @@ public class CollectionBeans {
 	@Autowired
 	private List<ItemPack> itemPackList;
 
+	public List<ItemPack> getItemPackList() {
+		return itemPackList;
+	}
+
+	public void setItemPackList(List<ItemPack> itemPackList) {
+		this.itemPackList = itemPackList;
+	}
+
 }
