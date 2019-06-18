@@ -189,9 +189,13 @@ public class OrderService {
 			}
 			/**
 			 * If we can't complete the order at this stage, we poll the queue in order to
-			 * start from next element
+			 * start from next element. If no element are left, i was not able to make a package
 			 */
 			map.pollFirstEntry();
+
+			if (map.size() == 0)
+				return new HashMap<Integer, Integer>();
+
 			currentQuantity = map.firstKey();
 			itemOrderQuantity = key;
 
