@@ -33,7 +33,7 @@ public class Application {
 	}
 
 	@PostMapping(path = "/order", consumes = "application/json", produces = "application/json")
-	public String addMember(@RequestBody BakeryOrderReport order) throws JsonProcessingException {
+	public String order(@RequestBody BakeryOrderReport order) throws JsonProcessingException {
 
 		log.info("... new order request");
 

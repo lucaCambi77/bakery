@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -26,6 +27,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import it.cambi.hexad.bakery.exception.BakeryException;
 import it.cambi.hexad.bakery.model.BakeryOrder;
 import it.cambi.hexad.bakery.model.ItemOrder;
 import it.cambi.hexad.bakery.model.ItemPack;
@@ -38,8 +40,8 @@ import it.cambi.hexad.bakery.report.BakeryOrderReport;
 public class OrderService {
 
 	private static final Logger log = LoggerFactory.getLogger(OrderService.class);
-	private double finalPrice = 0;
 	private LinkedList<ItemPack> orderItemList;
+	private AtomicLong count = new AtomicLong();
 
 	@Autowired
 	private ObjectMapper objectMapper;
@@ -58,13 +60,17 @@ public class OrderService {
 	 * @throws JsonProcessingException
 	 */
 	public BakeryOrderReport setBakeryOrder(Map<String, Integer> orderRequest) throws JsonProcessingException {
+
+		if (null == orderRequest)
+			throw new BakeryException("Order cannot be empty!");
+
 		Date orderDate = new Date();
-		AtomicLong count = new AtomicLong();
 
 		LinkedList<ItemOrder> itemOrderList = new LinkedList<>();
 
-		orderRequest.entrySet().forEach(o -> {
+		double finalPrice = 0;
 
+		for (Entry<String, Integer> o : orderRequest.entrySet()) {
 			orderItemList = itemPackList.stream().filter(i -> i.getItem().getItemCode().equals(o.getKey()))
 					.sorted(Comparator.comparingInt(ItemPack::getItemQuantity).reversed())
 					.collect(Collectors.toCollection(LinkedList::new));
@@ -90,7 +96,7 @@ public class OrderService {
 
 			}
 
-			map.entrySet().stream().forEach(m -> {
+			for (Entry<Integer, Integer> m : map.entrySet()) {
 				ItemPack itemPack = orderItemList.stream().filter(p -> p.getItemQuantity() == m.getKey()).findFirst()
 						.orElse(null);
 
@@ -103,9 +109,8 @@ public class OrderService {
 
 				itemOrderList.add(itemOrder);
 				finalPrice += roundedPrice;
-			});
-
-		});
+			}
+		}
 
 		BakeryOrder order = new BakeryOrder();
 
