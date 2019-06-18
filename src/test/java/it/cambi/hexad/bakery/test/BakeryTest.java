@@ -5,7 +5,6 @@ package it.cambi.hexad.bakery.test;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +42,7 @@ import it.cambi.hexad.bakery.services.OrderService;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = { Application.class, AppConfiguration.class }, webEnvironment = WebEnvironment.RANDOM_PORT)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class PackTest {
+public class BakeryTest {
 
 	@Autowired
 	private List<ItemPack> itemPackList;
@@ -122,6 +121,8 @@ public class PackTest {
 				Assert.assertEquals(itemOrder.getItemPackOrderQuantity(), m1.getValue());
 			});
 		});
+
+		Assert.assertEquals(orderRequest, report.getItemToCountMap());
 	}
 
 	@Test
