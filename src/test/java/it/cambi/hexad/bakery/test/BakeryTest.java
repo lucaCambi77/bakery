@@ -105,7 +105,7 @@ public class BakeryTest {
 	}
 
 	@Test
-	public void testBakeryOrder() throws JsonProcessingException {
+	public void testBakeryOrderService() throws JsonProcessingException {
 
 		BakeryOrderReport report = orderService.setBakeryOrder(orderRequest);
 
@@ -133,7 +133,7 @@ public class BakeryTest {
 	}
 
 	/**
-	 * Test order
+	 * Test order that should be correct
 	 * 
 	 * @throws Exception
 	 */
@@ -152,7 +152,7 @@ public class BakeryTest {
 	}
 
 	/**
-	 * Test order
+	 * Test wrong order
 	 * 
 	 * @throws Exception
 	 */
@@ -180,6 +180,7 @@ public class BakeryTest {
 	}
 
 	/**
+	 * Method to compare the response from the order service with expected solution 
 	 * @param orderRequest
 	 * @param report
 	 */
