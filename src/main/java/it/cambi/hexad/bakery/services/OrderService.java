@@ -40,7 +40,6 @@ import it.cambi.hexad.bakery.report.BakeryOrderReport;
 public class OrderService {
 
 	private static final Logger log = LoggerFactory.getLogger(OrderService.class);
-	private LinkedList<ItemPack> orderItemList;
 	private AtomicLong count = new AtomicLong();
 
 	@Autowired
@@ -53,8 +52,8 @@ public class OrderService {
 	 * Method to process the order.
 	 * 
 	 * Every product is processed , all possible packaging are evaluated and finally
-	 * the minimal number of pack is preferred. We create the order and also a final
-	 * report with all the information about prices and item packaging
+	 * the minimal number of packs is preferred. We create the order and also a
+	 * final report with all the information about prices and item packaging
 	 * 
 	 * @param orderRequest
 	 * @throws JsonProcessingException
@@ -71,7 +70,8 @@ public class OrderService {
 		double finalPrice = 0;
 
 		for (Entry<String, Integer> o : orderRequest.entrySet()) {
-			orderItemList = itemPackList.stream().filter(i -> i.getItem().getItemCode().equals(o.getKey()))
+			LinkedList<ItemPack> orderItemList = itemPackList.stream()
+					.filter(i -> i.getItem().getItemCode().equals(o.getKey()))
 					.sorted(Comparator.comparingInt(ItemPack::getItemQuantity).reversed())
 					.collect(Collectors.toCollection(LinkedList::new));
 
@@ -81,7 +81,7 @@ public class OrderService {
 			Map<Integer, Integer> mapStack = packagingWithStack(o.getValue(), orderItemList);
 
 			if (mapQueue.size() == 0 && mapStack.size() == 0)
-				throw new RuntimeException("Can't process order. No packaging available");
+				throw new BakeryException("Can't process order. No packaging available");
 
 			/**
 			 * If both maps have size greater than zero, i'll get the smallest. Otherwise
@@ -189,7 +189,8 @@ public class OrderService {
 			}
 			/**
 			 * If we can't complete the order at this stage, we poll the queue in order to
-			 * start from next element. If no element are left, i was not able to make a package
+			 * start from next element. If no element are left, we are not able to make a
+			 * package
 			 */
 			map.pollFirstEntry();
 
