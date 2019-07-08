@@ -12,10 +12,11 @@ import java.util.NavigableMap;
 import java.util.TreeMap;
 
 import org.junit.Assert;
-import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.runner.RunWith;
-import org.junit.runners.MethodSorters;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
@@ -40,10 +41,9 @@ import it.cambi.hexad.bakery.services.OrderService;
  * @author luca
  *
  */
-@RunWith(SpringRunner.class)
 @SpringBootTest(classes = { Application.class, AppConfiguration.class }, webEnvironment = WebEnvironment.RANDOM_PORT)
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 @SuppressWarnings("serial")
+@TestMethodOrder(OrderAnnotation.class)
 public class BakeryTest {
 
 	@Autowired
@@ -99,12 +99,15 @@ public class BakeryTest {
 	};
 
 	@Test
+	@Order(1)
 	public void createItemPackList() {
 
 		Assert.assertEquals(8, itemPackList.size());
+		System.out.println("hello");
 	}
 
 	@Test
+	@Order(2)
 	public void testBakeryOrderService() throws JsonProcessingException {
 
 		BakeryOrderReport report = orderService.setBakeryOrder(orderRequest);
@@ -113,6 +116,7 @@ public class BakeryTest {
 	}
 
 	@Test
+	@Order(3)
 	public void testRestGreeting() throws Exception {
 		ResponseEntity<String> entity = restTemplate.getForEntity("http://localhost:" + this.port + "/", String.class);
 		assertEquals(HttpStatus.OK, entity.getStatusCode());
@@ -124,6 +128,7 @@ public class BakeryTest {
 	 * @throws Exception
 	 */
 	@Test
+	@Order(4)
 	public void testRestBakeryNullOrder() throws Exception {
 		HttpEntity<BakeryOrderReport> request = new HttpEntity<BakeryOrderReport>(new BakeryOrderReport());
 
@@ -138,6 +143,7 @@ public class BakeryTest {
 	 * @throws Exception
 	 */
 	@Test
+	@Order(5)
 	public void testRestBakeryOrder() throws Exception {
 		BakeryOrderReport report = new BakeryOrderReport();
 
@@ -157,6 +163,7 @@ public class BakeryTest {
 	 * @throws Exception
 	 */
 	@Test
+	@Order(6)
 	public void testRestBakeryWrongOrder() throws Exception {
 		BakeryOrderReport report = new BakeryOrderReport();
 
@@ -180,7 +187,8 @@ public class BakeryTest {
 	}
 
 	/**
-	 * Method to compare the response from the order service with expected solution 
+	 * Method to compare the response from the order service with expected solution
+	 * 
 	 * @param orderRequest
 	 * @param report
 	 */
