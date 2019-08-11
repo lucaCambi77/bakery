@@ -3,7 +3,8 @@
  */
 package it.cambi.hexad.bakery.test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.HashMap;
 import java.util.List;
@@ -11,12 +12,11 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
-import org.junit.Assert;
-import org.junit.Test;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
@@ -25,7 +25,7 @@ import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
@@ -41,6 +41,7 @@ import it.cambi.hexad.bakery.services.OrderService;
  * @author luca
  *
  */
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = { Application.class, AppConfiguration.class }, webEnvironment = WebEnvironment.RANDOM_PORT)
 @SuppressWarnings("serial")
 @TestMethodOrder(OrderAnnotation.class)
@@ -102,7 +103,7 @@ public class BakeryTest {
 	@Order(1)
 	public void createItemPackList() {
 
-		Assert.assertEquals(8, itemPackList.size());
+		assertEquals(8, itemPackList.size());
 		System.out.println("hello");
 	}
 
@@ -201,11 +202,11 @@ public class BakeryTest {
 						.filter(i -> i.getItemPack().getItem().getItemCode().equals(m.getKey()))
 						.filter(i -> i.getItemPack().getItemQuantity() == m1.getKey()).findFirst().orElse(null);
 
-				Assert.assertNotNull(itemOrder);
-				Assert.assertEquals(itemOrder.getItemPackOrderQuantity(), m1.getValue());
+				assertNotNull(itemOrder);
+				assertEquals(itemOrder.getItemPackOrderQuantity(), m1.getValue());
 			});
 		});
 
-		Assert.assertEquals(orderRequest, report.getItemToCountMap());
+		assertEquals(orderRequest, report.getItemToCountMap());
 	}
 }
