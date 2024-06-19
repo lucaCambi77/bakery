@@ -1,268 +1,256 @@
-/**
- * 
- */
+/** */
 package it.cambi.hexad.bakery.services;
 
+import it.cambi.hexad.bakery.enums.ItemType;
+import it.cambi.hexad.bakery.exception.BakeryException;
+import it.cambi.hexad.bakery.model.Item;
+import it.cambi.hexad.bakery.model.ItemOrder;
+import it.cambi.hexad.bakery.model.ItemPack;
+import it.cambi.hexad.bakery.request.BakeryOrderReport;
+import it.cambi.hexad.bakery.request.BakeryOrderRequest;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
-import it.cambi.hexad.bakery.exception.BakeryException;
-import it.cambi.hexad.bakery.model.BakeryOrder;
-import it.cambi.hexad.bakery.model.ItemOrder;
-import it.cambi.hexad.bakery.model.ItemPack;
-import it.cambi.hexad.bakery.report.BakeryOrderReport;
 
 /**
  * @author luca
- *
  */
 public class OrderService {
 
-	private static final Logger log = LoggerFactory.getLogger(OrderService.class);
-	private AtomicLong count = new AtomicLong();
+  /**
+   * Method to process the order.
+   *
+   * <p>Every product is processed , all possible packaging are evaluated and finally the minimal
+   * number of packs is preferred. We create the order and also a final report with all the
+   * information about prices and item packaging
+   *
+   * @param orderRequest
+   */
+  public BakeryOrderReport bakeryOrder(BakeryOrderRequest orderRequest) {
 
-	@Autowired
-	private ObjectMapper objectMapper;
+    if (null == orderRequest) {
+      throw new BakeryException("Order can't be empty!");
+    }
 
-	@Autowired
-	private List<ItemPack> itemPackList;
+    List<ItemPack> itemPackList = getItemPackList();
 
-	/**
-	 * Method to process the order.
-	 * 
-	 * Every product is processed , all possible packaging are evaluated and finally
-	 * the minimal number of packs is preferred. We create the order and also a
-	 * final report with all the information about prices and item packaging
-	 * 
-	 * @param orderRequest
-	 * @throws JsonProcessingException
-	 */
-	public BakeryOrderReport setBakeryOrder(Map<String, Integer> orderRequest) throws JsonProcessingException {
+    LinkedList<ItemOrder> itemOrderList = new LinkedList<>();
 
-		if (null == orderRequest)
-			throw new BakeryException("Order can't be empty!");
+    for (Entry<String, Integer> o : orderRequest.getItemToCountMap().entrySet()) {
+      LinkedList<ItemPack> orderItemList =
+          itemPackList.stream()
+              .filter(i -> i.getItem().getItemCode().equals(o.getKey()))
+              .sorted(Comparator.comparingInt(ItemPack::getItemQuantity).reversed())
+              .collect(Collectors.toCollection(LinkedList::new));
 
-		Date orderDate = new Date();
+      Map<Integer, Integer> mapQueue = packagingWithQueue(o.getValue(), orderItemList);
+      Map<Integer, Integer> mapStack = packagingWithStack(o.getValue(), orderItemList);
 
-		LinkedList<ItemOrder> itemOrderList = new LinkedList<>();
+      if (mapQueue.isEmpty() && mapStack.isEmpty()) {
+        throw new BakeryException("Can't process order. No packaging available");
+      }
 
-		double finalPrice = 0;
+      // If both maps have size greater than zero, i'll get the smallest. Otherwise, i'll get the
+      // one, that has size greater than zero
+      Map<Integer, Integer> map;
 
-		for (Entry<String, Integer> o : orderRequest.entrySet()) {
-			LinkedList<ItemPack> orderItemList = itemPackList.stream()
-					.filter(i -> i.getItem().getItemCode().equals(o.getKey()))
-					.sorted(Comparator.comparingInt(ItemPack::getItemQuantity).reversed())
-					.collect(Collectors.toCollection(LinkedList::new));
+      if (!mapQueue.isEmpty() && !mapStack.isEmpty()) {
+        map = mapQueue.size() < mapStack.size() ? mapQueue : mapStack;
+      } else if (mapQueue.isEmpty()) {
+        map = mapStack;
+      } else {
+        map = mapQueue;
+      }
 
-			Map<Integer, Integer> map;
+      for (Entry<Integer, Integer> m : map.entrySet()) {
+        ItemPack itemPack =
+            orderItemList.stream()
+                .filter(p -> p.getItemQuantity() == m.getKey())
+                .findFirst()
+                .orElse(null);
 
-			Map<Integer, Integer> mapQueue = packagingWithQueue(o.getValue(), orderItemList);
-			Map<Integer, Integer> mapStack = packagingWithStack(o.getValue(), orderItemList);
+        ItemOrder itemOrder = new ItemOrder();
+        itemOrder.setItemPack(itemPack);
+        itemOrder.setItemPackOrderQuantity(m.getValue());
+        double roundedPrice =
+            BigDecimal.valueOf(m.getValue() * itemPack.getItemPackPrice())
+                .setScale(2, RoundingMode.HALF_UP)
+                .doubleValue();
+        itemOrder.setPartialOrderPrice(roundedPrice);
 
-			if (mapQueue.size() == 0 && mapStack.size() == 0)
-				throw new BakeryException("Can't process order. No packaging available");
+        itemOrderList.add(itemOrder);
+      }
+    }
 
-			/**
-			 * If both maps have size greater than zero, i'll get the smallest. Otherwise
-			 * i'll get the one that has size greater than zero
-			 */
-			if (mapQueue.size() > 0 && mapStack.size() > 0) {
-				map = mapQueue.size() < mapStack.size() ? mapQueue : mapStack;
-			} else if (mapQueue.size() == 0 && mapStack.size() > 0) {
-				map = mapStack;
-			} else {
-				map = mapQueue;
+    BakeryOrderReport report = new BakeryOrderReport();
+    report.setItemOrderList(itemOrderList);
 
-			}
+    return report;
+  }
 
-			for (Entry<Integer, Integer> m : map.entrySet()) {
-				ItemPack itemPack = orderItemList.stream().filter(p -> p.getItemQuantity() == m.getKey()).findFirst()
-						.orElse(null);
+  /**
+   * @param key
+   * @param itemList
+   */
+  private Map<Integer, Integer> packagingWithQueue(Integer key, LinkedList<ItemPack> itemList) {
 
-				ItemOrder itemOrder = new ItemOrder();
-				itemOrder.setItemPack(itemPack);
-				itemOrder.setItemPackOrderQuantity(m.getValue());
-				Double roundedPrice = new BigDecimal(m.getValue() * itemPack.getItemPackPrice())
-						.setScale(2, RoundingMode.HALF_UP).doubleValue();
-				itemOrder.setPartialOrderPrice(roundedPrice);
+    NavigableMap<Integer, Integer> map = new TreeMap<>(Collections.reverseOrder());
+    int i = 0;
 
-				itemOrderList.add(itemOrder);
-				finalPrice += roundedPrice;
-			}
-		}
+    Integer itemOrderQuantity = key;
 
-		BakeryOrder order = new BakeryOrder();
+    Integer currentQuantity = itemList.get(i).getItemQuantity();
 
-		order.setOrderId(count.incrementAndGet());
-		order.setOrderPrice(new BigDecimal(finalPrice).setScale(2, RoundingMode.HALF_UP).doubleValue());
-		order.setOrderDate(orderDate);
-		order.setItemOrderList(new HashSet<ItemOrder>(itemOrderList));
-		order.setOrderStatus("RECEIVED");
-		order.setPaymentType("CREDITCARD");
+    while (i < itemList.size()) {
 
-		itemOrderList.forEach(i -> i.setOrder(order));
+      int rem = itemOrderQuantity % currentQuantity;
+      int quota = itemOrderQuantity / currentQuantity;
+      map.put(currentQuantity, quota);
 
-		Map<String, Integer> itemToCountMap = itemOrderList.stream()
-				.collect(Collectors.groupingBy(c -> c.getItemPack().getItem().getItemCode(),
-						Collectors.summingInt(c -> c.getItemPackOrderQuantity() * c.getItemPack().getItemQuantity())));
+      if (rem == 0) {
+        return map;
+      }
 
-		BakeryOrderReport report = new BakeryOrderReport();
-		report.setBakeryOrder(order);
-		report.setItemOrderList(itemOrderList);
-		report.setItemToCountMap(itemToCountMap);
+      itemOrderQuantity -= quota * currentQuantity;
 
-		log.info(objectMapper.enable(SerializationFeature.INDENT_OUTPUT).writeValueAsString(report));
-		return report;
-	}
+      int tmp = i + 1;
+      int nextQuantity = 0;
+      if (tmp < itemList.size()) {
+        nextQuantity = itemList.get(tmp).getItemQuantity();
+        map.put(nextQuantity, 0);
 
-	/**
-	 * @param key
-	 * @param itemList
-	 */
-	private Map<Integer, Integer> packagingWithQueue(Integer key, LinkedList<ItemPack> itemList) {
+        /**
+         * check if next quantity is greater than remaining quantity
+         *
+         * <p>If we can't complete the order at this stage, we poll the queue in order to start from
+         * next element
+         */
+        if (itemOrderQuantity < nextQuantity) {
+          map.pollFirstEntry();
+          currentQuantity = map.firstKey();
+          itemOrderQuantity = key;
+          i++;
+          continue;
+        }
 
-		NavigableMap<Integer, Integer> map = new TreeMap<Integer, Integer>(Collections.reverseOrder());
-		int i = 0;
+        quota = itemOrderQuantity / nextQuantity;
+        map.put(nextQuantity, quota);
 
-		Integer itemOrderQuantity = key;
+        if (itemOrderQuantity % nextQuantity == 0) {
+          return map;
+        }
+      }
+      /**
+       * If we can't complete the order at this stage, we poll the queue in order to start from next
+       * element. If no element are left, we are not able to make a package
+       */
+      map.pollFirstEntry();
 
-		Integer currentQuantity = itemList.get(i).getItemQuantity();
+      if (map.isEmpty()) {
+        return new HashMap<>();
+      }
 
-		while (i < itemList.size()) {
+      currentQuantity = map.firstKey();
+      itemOrderQuantity = key;
 
-			int rem = itemOrderQuantity % currentQuantity;
-			int quota = itemOrderQuantity / currentQuantity;
-			map.put(currentQuantity, quota);
+      i++;
+    }
 
-			if (rem == 0)
-				return map;
+    return new HashMap<>();
+  }
 
-			itemOrderQuantity -= quota * currentQuantity;
+  /**
+   * @param key
+   * @param itemList
+   */
+  private Map<Integer, Integer> packagingWithStack(Integer key, LinkedList<ItemPack> itemList) {
+    NavigableMap<Integer, Integer> map = new TreeMap<>(Collections.reverseOrder());
 
-			int tmp = i + 1;
-			int nextQuantity = 0;
-			if (tmp < itemList.size()) {
-				nextQuantity = itemList.get(tmp).getItemQuantity();
-				map.put(nextQuantity, 0);
+    int i = 0;
 
-				/**
-				 * check if next quantity is greater than remaining quantity
-				 * 
-				 * If we can't complete the order at this stage, we poll the queue in order to
-				 * start from next element
-				 */
-				if (itemOrderQuantity < nextQuantity) {
-					map.pollFirstEntry();
-					currentQuantity = map.firstKey();
-					itemOrderQuantity = key;
-					i++;
-					continue;
-				}
+    Integer itemOrderQuantity = key;
 
-				quota = itemOrderQuantity / nextQuantity;
-				map.put(nextQuantity, quota);
+    while (i < itemList.size()) {
 
-				if (itemOrderQuantity % nextQuantity == 0)
-					return map;
+      Integer currentQuantity = itemList.get(i).getItemQuantity();
+      int rem = itemOrderQuantity % currentQuantity;
+      int quota = itemOrderQuantity / currentQuantity;
+      map.put(currentQuantity, quota);
 
-			}
-			/**
-			 * If we can't complete the order at this stage, we poll the queue in order to
-			 * start from next element. If no element are left, we are not able to make a
-			 * package
-			 */
-			map.pollFirstEntry();
+      if (rem == 0) {
+        return map;
+      }
 
-			if (map.size() == 0)
-				return new HashMap<Integer, Integer>();
+      itemOrderQuantity -= quota * currentQuantity;
 
-			currentQuantity = map.firstKey();
-			itemOrderQuantity = key;
+      int tmp = i + 1;
+      int nextQuantity = 0;
 
-			i++;
-		}
+      if (tmp < itemList.size()) {
+        nextQuantity = itemList.get(tmp).getItemQuantity();
+        quota = itemOrderQuantity / nextQuantity;
+        map.put(nextQuantity, quota);
 
-		return new HashMap<Integer, Integer>();
-	}
+        /**
+         * Check if next quantity is greater than remaining quantity
+         *
+         * <p>If we can't complete the order at this stage, we pop the stack in order to skip to
+         * next next element
+         */
+        if (itemOrderQuantity < nextQuantity) {
+          map.pollLastEntry();
+          i++;
+          i++;
+          continue;
+        }
 
-	/**
-	 * @param key
-	 * @param itemList
-	 */
-	private Map<Integer, Integer> packagingWithStack(Integer key, LinkedList<ItemPack> itemList) {
-		NavigableMap<Integer, Integer> map = new TreeMap<Integer, Integer>(Collections.reverseOrder());
+        if (itemOrderQuantity % nextQuantity == 0) {
+          return map;
+        }
+      }
+      /**
+       * If we can't complete the order at this stage, we pop the stack in order to skip to next
+       * next element
+       */
+      map.pollLastEntry();
+      i++;
+      i++;
+    }
+    return new HashMap<>();
+  }
 
-		int i = 0;
+  public List<ItemPack> getItemPackList() {
 
-		Integer itemOrderQuantity = key;
+    List<ItemPack> itemPackList = new ArrayList<>();
 
-		while (i < itemList.size()) {
+    for (ItemType item : ItemType.values()) {
 
-			Integer currentQuantity = itemList.get(i).getItemQuantity();
-			int rem = itemOrderQuantity % currentQuantity;
-			int quota = itemOrderQuantity / currentQuantity;
-			map.put(currentQuantity, quota);
+      Item aItem = new Item();
+      aItem.setDescription(item.getDescr());
+      aItem.setItemCode(item.getCode());
 
-			if (rem == 0)
-				return map;
+      item.getPackToPrice()
+          .forEach(
+              (key, value) -> {
+                ItemPack itemPack = new ItemPack();
+                itemPack.setItemPackPrice(value);
+                itemPack.setItemQuantity(key);
+                itemPack.setItem(aItem);
 
-			itemOrderQuantity -= quota * currentQuantity;
+                itemPackList.add(itemPack);
+              });
+    }
 
-			int tmp = i + 1;
-			int nextQuantity = 0;
-
-			if (tmp < itemList.size()) {
-				nextQuantity = itemList.get(tmp).getItemQuantity();
-				quota = itemOrderQuantity / nextQuantity;
-				map.put(nextQuantity, quota);
-
-				/**
-				 * Check if next quantity is greater than remaining quantity
-				 * 
-				 * If we can't complete the order at this stage, we pop the stack in order to
-				 * skip to next next element
-				 */
-				if (itemOrderQuantity < nextQuantity) {
-					map.pollLastEntry();
-					i++;
-					i++;
-					continue;
-				}
-
-				if (itemOrderQuantity % nextQuantity == 0)
-					return map;
-
-			}
-			/**
-			 * If we can't complete the order at this stage, we pop the stack in order to
-			 * skip to next next element
-			 */
-			map.pollLastEntry();
-			i++;
-			i++;
-
-		}
-		return new HashMap<Integer, Integer>();
-	}
+    return itemPackList;
+  }
 }

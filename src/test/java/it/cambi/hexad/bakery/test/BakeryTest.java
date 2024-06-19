@@ -1,212 +1,109 @@
-/**
- * 
- */
+/** */
 package it.cambi.hexad.bakery.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.TreeMap;
-
-import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-
 import it.cambi.hexad.bakery.application.AppConfiguration;
 import it.cambi.hexad.bakery.application.Application;
 import it.cambi.hexad.bakery.enums.ItemType;
 import it.cambi.hexad.bakery.model.ItemOrder;
-import it.cambi.hexad.bakery.model.ItemPack;
-import it.cambi.hexad.bakery.report.BakeryOrderReport;
-import it.cambi.hexad.bakery.services.OrderService;
+import it.cambi.hexad.bakery.request.BakeryOrderReport;
+import it.cambi.hexad.bakery.request.BakeryOrderRequest;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 /**
  * @author luca
- *
  */
-@ExtendWith(SpringExtension.class)
-@SpringBootTest(classes = { Application.class, AppConfiguration.class }, webEnvironment = WebEnvironment.RANDOM_PORT)
-@SuppressWarnings("serial")
-@TestMethodOrder(OrderAnnotation.class)
+@SpringBootTest(
+    classes = {Application.class, AppConfiguration.class},
+    webEnvironment = WebEnvironment.RANDOM_PORT)
 public class BakeryTest {
 
-	@Autowired
-	private List<ItemPack> itemPackList;
+  @Autowired private TestRestTemplate restTemplate;
 
-	@Autowired
-	private OrderService orderService;
+  @LocalServerPort private int port;
 
-	@Autowired
-	private TestRestTemplate restTemplate;
+  private final Map<String, Integer> orderRequest =
+      Map.of(ItemType.MB11.getCode(), 14, ItemType.VS5.getCode(), 10, ItemType.CF.getCode(), 13);
 
-	@LocalServerPort
-	private int port;
+  private final Map<String, Map<Integer, Integer>> solutionMap =
+      Map.of(
+          ItemType.MB11.getCode(),
+          Map.of(8, 1, 2, 3),
+          ItemType.VS5.getCode(),
+          Map.of(5, 2),
+          ItemType.CF.getCode(),
+          Map.of(5, 2, 3, 1));
 
-	private static NavigableMap<String, Integer> orderRequest = new TreeMap<String, Integer>() {
-		{
-			{
-				{
-					put(ItemType.MB11.getCode(), 14);
-					put(ItemType.VS5.getCode(), 10);
-					put(ItemType.CF.getCode(), 13);
+  /** Test null order */
+  @Test
+  public void testRestBakeryNullOrder() {
+    HttpEntity<BakeryOrderReport> request = new HttpEntity<>(new BakeryOrderReport());
 
-				}
-			}
-		}
-	};
+    ResponseEntity<BakeryOrderReport> entity =
+        restTemplate.postForEntity(
+            "http://localhost:" + this.port + "/order", request, BakeryOrderReport.class);
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, entity.getStatusCode());
+  }
 
-	private static Map<String, Map<Integer, Integer>> solutionMap = new HashMap<String, Map<Integer, Integer>>() {
-		{
-			put(ItemType.MB11.getCode(), new HashMap<Integer, Integer>() {
-				{
-					put(8, 1);
-					put(2, 3);
+  /** Test order that should be correct */
+  @Test
+  public void testRestBakeryOrder() {
+    BakeryOrderRequest request = new BakeryOrderRequest(orderRequest);
 
-				}
-			});
+    HttpEntity<BakeryOrderRequest> httpEntity = new HttpEntity<>(request);
 
-			put(ItemType.VS5.getCode(), new HashMap<Integer, Integer>() {
-				{
-					put(5, 2);
+    ResponseEntity<BakeryOrderReport> entity =
+        restTemplate.postForEntity(
+            "http://localhost:" + this.port + "/order", httpEntity, BakeryOrderReport.class);
 
-				}
-			});
+    assertEquals(HttpStatus.OK, entity.getStatusCode());
+  }
 
-			put(ItemType.CF.getCode(), new HashMap<Integer, Integer>() {
-				{
-					put(5, 2);
-					put(3, 1);
+  /** Test wrong order */
+  @Test
+  public void testRestBakeryWrongOrder() {
+    BakeryOrderRequest request = new BakeryOrderRequest(Map.of(ItemType.VS5.getCode(), 7));
+    HttpEntity<BakeryOrderRequest> httpEntity = new HttpEntity<>(request);
 
-				}
-			});
-		}
-	};
+    ResponseEntity<BakeryOrderReport> entity =
+        restTemplate.postForEntity(
+            "http://localhost:" + this.port + "/order", httpEntity, BakeryOrderReport.class);
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, entity.getStatusCode());
+  }
 
-	@Test
-	@Order(1)
-	public void createItemPackList() {
+  /**
+   * Method to compare the response from the order service with expected solution
+   *
+   * @param report
+   */
+  private void testOrderResponse(BakeryOrderReport report) {
+    List<ItemOrder> itemOrderList = report.getItemOrderList();
 
-		assertEquals(8, itemPackList.size());
-		System.out.println("hello");
-	}
+    solutionMap.forEach(
+        (key, value) ->
+            value.forEach(
+                (key1, value1) -> {
+                  ItemOrder itemOrder =
+                      itemOrderList.stream()
+                          .filter(i -> i.getItemPack().getItem().getItemCode().equals(key))
+                          .filter(i -> i.getItemPack().getItemQuantity() == key1)
+                          .findFirst()
+                          .orElse(null);
 
-	@Test
-	@Order(2)
-	public void testBakeryOrderService() throws JsonProcessingException {
-
-		BakeryOrderReport report = orderService.setBakeryOrder(orderRequest);
-
-		testOrderResponse(orderRequest, report);
-	}
-
-	@Test
-	@Order(3)
-	public void testRestGreeting() throws Exception {
-		ResponseEntity<String> entity = restTemplate.getForEntity("http://localhost:" + this.port + "/", String.class);
-		assertEquals(HttpStatus.OK, entity.getStatusCode());
-	}
-
-	/**
-	 * Test null order
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	@Order(4)
-	public void testRestBakeryNullOrder() throws Exception {
-		HttpEntity<BakeryOrderReport> request = new HttpEntity<BakeryOrderReport>(new BakeryOrderReport());
-
-		ResponseEntity<BakeryOrderReport> entity = restTemplate
-				.postForEntity("http://localhost:" + this.port + "/order", request, BakeryOrderReport.class);
-		assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, entity.getStatusCode());
-	}
-
-	/**
-	 * Test order that should be correct
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	@Order(5)
-	public void testRestBakeryOrder() throws Exception {
-		BakeryOrderReport report = new BakeryOrderReport();
-
-		report.setItemToCountMap(orderRequest);
-
-		HttpEntity<BakeryOrderReport> request = new HttpEntity<BakeryOrderReport>(report);
-
-		ResponseEntity<BakeryOrderReport> entity = restTemplate
-				.postForEntity("http://localhost:" + this.port + "/order", request, BakeryOrderReport.class);
-		assertEquals(HttpStatus.OK, entity.getStatusCode());
-
-	}
-
-	/**
-	 * Test wrong order
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	@Order(6)
-	public void testRestBakeryWrongOrder() throws Exception {
-		BakeryOrderReport report = new BakeryOrderReport();
-
-		report.setItemToCountMap(new TreeMap<String, Integer>() {
-			{
-				{
-					{
-						put(ItemType.VS5.getCode(), 7);
-
-					}
-				}
-			}
-		});
-
-		HttpEntity<BakeryOrderReport> request = new HttpEntity<BakeryOrderReport>(report);
-
-		ResponseEntity<BakeryOrderReport> entity = restTemplate
-				.postForEntity("http://localhost:" + this.port + "/order", request, BakeryOrderReport.class);
-		assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, entity.getStatusCode());
-
-	}
-
-	/**
-	 * Method to compare the response from the order service with expected solution
-	 * 
-	 * @param orderRequest
-	 * @param report
-	 */
-	private void testOrderResponse(NavigableMap<String, Integer> orderRequest, BakeryOrderReport report) {
-		List<ItemOrder> itemOrderList = report.getItemOrderList();
-
-		solutionMap.entrySet().forEach(m -> {
-			m.getValue().entrySet().forEach(m1 -> {
-				ItemOrder itemOrder = itemOrderList.stream()
-						.filter(i -> i.getItemPack().getItem().getItemCode().equals(m.getKey()))
-						.filter(i -> i.getItemPack().getItemQuantity() == m1.getKey()).findFirst().orElse(null);
-
-				assertNotNull(itemOrder);
-				assertEquals(itemOrder.getItemPackOrderQuantity(), m1.getValue());
-			});
-		});
-
-		assertEquals(orderRequest, report.getItemToCountMap());
-	}
+                  assertNotNull(itemOrder);
+                  assertEquals(itemOrder.getItemPackOrderQuantity(), value1);
+                }));
+  }
 }
