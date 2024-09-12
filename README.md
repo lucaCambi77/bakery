@@ -12,12 +12,15 @@ There is a default profiles with which you can run the application
 
 To install 
 
-- mvn clean install
+```bash
+- ./gradlew clean install
+```
 
 To run  
 
-- java -jar target/*.jar
-		
+```
+- java -jar build/libs/bakery.jar
+```
 
 After the application is running, order api is exposed :
 
