@@ -59,6 +59,15 @@ public class OrderService {
     return new Order(itemOrderList);
   }
 
+  /**
+   * Loop from 0 to the total quantity by keeping track of the minimum packages we can use. It uses
+   * dynamic programming to find the previous related packaging. Then, it adds the current packaging
+   * and calculate the minimum configuration for the current slot given the combinations available.
+   *
+   * @param quantity how many items in the order
+   * @param packs different packaging for an item
+   * @return
+   */
   public List<Pack> findMinimalPacks(int quantity, List<Pack> packs) {
     // dp[i] will store the minimal pack combination to fulfill the order of size 'i'
     List<Pack>[] dp = new ArrayList[quantity + 1];
@@ -68,7 +77,9 @@ public class OrderService {
     for (int i = 1; i <= quantity; i++) {
       for (Pack pack : packs) {
         if (i >= pack.size() && dp[i - pack.size()] != null) {
-          List<Pack> newPackCombination = new ArrayList<>(dp[i - pack.size()]);
+          int pos = i - pack.size();
+
+          List<Pack> newPackCombination = new ArrayList<>(dp[pos]);
           newPackCombination.add(pack);
 
           if (dp[i] == null || newPackCombination.size() < dp[i].size()) {
