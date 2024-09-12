@@ -1,13 +1,11 @@
 package it.cambi.hexad.bakery.application;
 
-import it.cambi.hexad.bakery.request.BakeryOrderReport;
-import it.cambi.hexad.bakery.request.BakeryOrderRequest;
+import it.cambi.hexad.bakery.request.Order;
+import it.cambi.hexad.bakery.request.OrderRequest;
 import it.cambi.hexad.bakery.services.OrderService;
 import lombok.RequiredArgsConstructor;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.http.MediaType;
@@ -32,7 +30,7 @@ public class Application {
       path = "/order",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  public BakeryOrderReport order(@RequestBody BakeryOrderRequest order) {
+  public Order order(@RequestBody OrderRequest order) {
 
     log.info("... new order request");
 

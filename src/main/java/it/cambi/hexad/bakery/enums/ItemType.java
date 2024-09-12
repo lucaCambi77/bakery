@@ -18,12 +18,12 @@ public enum ItemType {
       "Blueberry Muffin"),
   CF(List.of(new Pack(9, 16.99), new Pack(5, 9.95), new Pack(3, 5.95)), "CF", "Croissant");
 
-  private final List<Pack> packToPrice;
+  private final List<Pack> packs;
   private final String code;
   private final String description;
 
   ItemType(List<Pack> packToPrice, String code, String descr) {
-    this.packToPrice = packToPrice;
+    this.packs = packToPrice;
     this.code = code;
     this.description = descr;
   }

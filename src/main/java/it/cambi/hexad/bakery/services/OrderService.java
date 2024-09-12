@@ -5,8 +5,8 @@ import it.cambi.hexad.bakery.enums.ItemType;
 import it.cambi.hexad.bakery.exception.BakeryException;
 import it.cambi.hexad.bakery.model.ItemOrder;
 import it.cambi.hexad.bakery.model.Pack;
-import it.cambi.hexad.bakery.request.BakeryOrderReport;
-import it.cambi.hexad.bakery.request.BakeryOrderRequest;
+import it.cambi.hexad.bakery.request.Order;
+import it.cambi.hexad.bakery.request.OrderRequest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -27,15 +27,15 @@ public class OrderService {
    *
    * @param orderRequest
    */
-  public BakeryOrderReport bakeryOrder(BakeryOrderRequest orderRequest) {
+  public Order bakeryOrder(OrderRequest orderRequest) {
 
-    if (null == orderRequest) {
+    if (null == orderRequest || orderRequest.getItems().isEmpty()) {
       throw new BakeryException("Order can't be empty!");
     }
 
     LinkedList<ItemOrder> itemOrderList = new LinkedList<>();
 
-    for (Entry<String, Integer> itemToQuantityOrder : orderRequest.getItemToCountMap().entrySet()) {
+    for (Entry<String, Integer> itemToQuantityOrder : orderRequest.getItems().entrySet()) {
       ItemType item =
           Arrays.stream(ItemType.values())
               .filter(i -> i.getCode().equals(itemToQuantityOrder.getKey()))
@@ -43,25 +43,20 @@ public class OrderService {
               .orElseThrow(
                   () -> new BakeryException("Item " + itemToQuantityOrder.getKey() + " not found"));
 
-      List<Pack> packs = findMinimalPacks(itemToQuantityOrder.getValue(), item.getPackToPrice());
+      List<Pack> packs = findMinimalPacks(itemToQuantityOrder.getValue(), item.getPacks());
 
-      if (packs != null) {
-        ItemOrder itemOrder = new ItemOrder();
-        itemOrder.setItem(item.getCode());
-        itemOrderList.add(itemOrder);
-      } else {
+      if (packs == null) {
         throw new BakeryException(
             "Quantity "
                 + itemToQuantityOrder.getValue()
                 + " is not possible to package for item "
                 + item);
       }
+
+      itemOrderList.add(new ItemOrder(item.getCode(), packs));
     }
 
-    BakeryOrderReport report = new BakeryOrderReport();
-    report.setItemOrderList(itemOrderList);
-
-    return report;
+    return new Order(itemOrderList);
   }
 
   public List<Pack> findMinimalPacks(int quantity, List<Pack> packs) {
