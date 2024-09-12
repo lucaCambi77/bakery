@@ -27,7 +27,7 @@ After the application is running, order api is exposed :
 ## (POST) http://localhost:8080/order
 To request an order to the application with following json as sample (application/json is required as content type in header request) :
 
-{"itemToCountMap":{"CF":13,"MB11":14,"VS5":10}}
+{"items":{"CF":13,"MB11":14,"VS5":10}}
 
 If the order is completed, you will receive a report with all the information about prices and packaging
 
