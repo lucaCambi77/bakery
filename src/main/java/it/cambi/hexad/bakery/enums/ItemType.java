@@ -16,11 +16,11 @@ public enum ItemType {
 
   private final Map<Integer, Double> packToPrice;
   private final String code;
-  private final String descr;
+  private final String description;
 
   ItemType(Map<Integer, Double> packToPrice, String code, String descr) {
     this.packToPrice = packToPrice;
     this.code = code;
-    this.descr = descr;
+    this.description = descr;
   }
 }
