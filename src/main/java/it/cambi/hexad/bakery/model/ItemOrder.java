@@ -1,17 +1,15 @@
 /** */
 package it.cambi.hexad.bakery.model;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.util.List;
 import lombok.Data;
 
 /**
  * @author luca
  */
-@JsonSerialize(using = ItemOrderSerializer.class)
 @Data
 public class ItemOrder {
 
-  private ItemPack itemPack;
-  private Integer itemPackOrderQuantity;
-  private double partialOrderPrice;
+  private String item;
+  private List<Pack> packs;
 }

@@ -3,13 +3,12 @@ package it.cambi.hexad.bakery.services;
 
 import it.cambi.hexad.bakery.enums.ItemType;
 import it.cambi.hexad.bakery.exception.BakeryException;
-import it.cambi.hexad.bakery.model.Item;
 import it.cambi.hexad.bakery.model.ItemOrder;
-import it.cambi.hexad.bakery.model.ItemPack;
+import it.cambi.hexad.bakery.model.Pack;
 import it.cambi.hexad.bakery.request.BakeryOrderReport;
 import it.cambi.hexad.bakery.request.BakeryOrderRequest;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -34,42 +33,29 @@ public class OrderService {
       throw new BakeryException("Order can't be empty!");
     }
 
-    List<ItemPack> itemPackList = getItemPackList();
-
     LinkedList<ItemOrder> itemOrderList = new LinkedList<>();
 
-    int reminder = 0;
-    int quantityLeft = 0;
-
     for (Entry<String, Integer> itemToQuantityOrder : orderRequest.getItemToCountMap().entrySet()) {
-      List<ItemPack> orderItemList =
-          itemPackList.stream()
-              .filter(i -> i.getItem().getItemCode().equals(itemToQuantityOrder.getKey()))
-              .sorted(Comparator.comparingInt(ItemPack::getItemQuantity).reversed())
-              .toList();
+      ItemType item =
+          Arrays.stream(ItemType.values())
+              .filter(i -> i.getCode().equals(itemToQuantityOrder.getKey()))
+              .findFirst()
+              .orElseThrow(
+                  () -> new BakeryException("Item " + itemToQuantityOrder.getKey() + " not found"));
 
-      for (ItemPack itemPack : orderItemList) {
+      List<Pack> packs = findMinimalPacks(itemToQuantityOrder.getValue(), item.getPackToPrice());
 
-        int packCount =
-            itemToQuantityOrder.getValue()
-                / (reminder == 0 ? reminder = itemPack.getItemQuantity() : reminder);
-        if (packCount > 0) {
-          ItemOrder itemOrder = new ItemOrder();
-          itemOrder.setItemPack(itemPack);
-          itemOrder.setItemPackOrderQuantity(packCount);
-          itemOrder.setPartialOrderPrice(itemPack.getItemPackPrice());
-          itemOrderList.add(itemOrder);
-        }
-        reminder = reminder % itemPack.getItemQuantity();
-        quantityLeft = itemToQuantityOrder.getValue() - (quantityLeft + itemPack.getItemQuantity());
-        if (reminder == 0) {
-          break;
-        }
+      if (packs != null) {
+        ItemOrder itemOrder = new ItemOrder();
+        itemOrder.setItem(item.getCode());
+        itemOrderList.add(itemOrder);
+      } else {
+        throw new BakeryException(
+            "Quantity "
+                + itemToQuantityOrder.getValue()
+                + " is not possible to package for item "
+                + item);
       }
-    }
-
-    if (quantityLeft > 0) {
-      throw new BakeryException("Quantity exceeded!");
     }
 
     BakeryOrderReport report = new BakeryOrderReport();
@@ -78,28 +64,24 @@ public class OrderService {
     return report;
   }
 
-  public List<ItemPack> getItemPackList() {
+  public List<Pack> findMinimalPacks(int quantity, List<Pack> packs) {
+    // dp[i] will store the minimal pack combination to fulfill the order of size 'i'
+    List<Pack>[] dp = new ArrayList[quantity + 1];
+    dp[0] = new ArrayList<>(); // Base case: 0 quantity needs 0 packs
 
-    List<ItemPack> itemPackList = new ArrayList<>();
+    // Loop through each quantity from 1 to 'quantity'
+    for (int i = 1; i <= quantity; i++) {
+      for (Pack pack : packs) {
+        if (i >= pack.size() && dp[i - pack.size()] != null) {
+          List<Pack> newPackCombination = new ArrayList<>(dp[i - pack.size()]);
+          newPackCombination.add(pack);
 
-    for (ItemType item : ItemType.values()) {
-
-      Item aItem = new Item();
-      aItem.setDescription(item.getDescription());
-      aItem.setItemCode(item.getCode());
-
-      item.getPackToPrice()
-          .forEach(
-              (key, value) -> {
-                ItemPack itemPack = new ItemPack();
-                itemPack.setItemPackPrice(value);
-                itemPack.setItemQuantity(key);
-                itemPack.setItem(aItem);
-
-                itemPackList.add(itemPack);
-              });
+          if (dp[i] == null || newPackCombination.size() < dp[i].size()) {
+            dp[i] = newPackCombination; // Update if we find fewer packs
+          }
+        }
+      }
     }
-
-    return itemPackList;
+    return dp[quantity]; // Returns null if there's no valid combination
   }
 }

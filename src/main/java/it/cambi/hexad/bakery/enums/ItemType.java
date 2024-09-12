@@ -1,7 +1,8 @@
 /** */
 package it.cambi.hexad.bakery.enums;
 
-import java.util.Map;
+import it.cambi.hexad.bakery.model.Pack;
+import java.util.List;
 import lombok.Getter;
 
 /**
@@ -10,15 +11,18 @@ import lombok.Getter;
  */
 @Getter
 public enum ItemType {
-  VS5(Map.of(3, 6.99, 5, 8.99), "VS5", "Vegemite Scroll"),
-  MB11(Map.of(2, 9.95, 5, 16.95, 8, 24.95), "MB11", "Blueberry Muffin"),
-  CF(Map.of(3, 5.95, 5, 9.95, 9, 16.99), "CF", "Croissant");
+  VS5(List.of(new Pack(5, 8.99), new Pack(3, 6.99)), "VS5", "Vegemite Scroll"),
+  MB11(
+      List.of(new Pack(8, 24.95), new Pack(5, 16.95), new Pack(2, 9.95)),
+      "MB11",
+      "Blueberry Muffin"),
+  CF(List.of(new Pack(9, 16.99), new Pack(5, 9.95), new Pack(3, 5.95)), "CF", "Croissant");
 
-  private final Map<Integer, Double> packToPrice;
+  private final List<Pack> packToPrice;
   private final String code;
   private final String description;
 
-  ItemType(Map<Integer, Double> packToPrice, String code, String descr) {
+  ItemType(List<Pack> packToPrice, String code, String descr) {
     this.packToPrice = packToPrice;
     this.code = code;
     this.description = descr;
