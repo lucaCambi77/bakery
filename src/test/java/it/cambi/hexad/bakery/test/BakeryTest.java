@@ -75,9 +75,17 @@ public class BakeryTest {
             .getContentAsString();
 
     assertEquals(
-        response,
         """
-{"order":[{"item":"MB11","packs":[{"size":2,"price":9.95},{"size":2,"price":9.95},{"size":2,"price":9.95},{"size":8,"price":24.95}]},{"item":"VS5","packs":[{"size":5,"price":8.99},{"size":5,"price":8.99}]},{"item":"CF","packs":[{"size":3,"price":5.95},{"size":5,"price":9.95},{"size":5,"price":9.95}]}]}""");
+        14 MB11 $54.80
+        3 x 2 $29.85
+        1 x 8 $24.95
+        10 VS5 $17.98
+        2 x 5 $17.98
+        13 CF $25.85
+        1 x 3 $5.95
+        2 x 5 $19.90
+        """,
+        response);
   }
 
   /** Test wrong order */

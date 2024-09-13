@@ -4,6 +4,7 @@ package it.cambi.hexad.bakery.services;
 import it.cambi.hexad.bakery.enums.ItemType;
 import it.cambi.hexad.bakery.exception.BakeryException;
 import it.cambi.hexad.bakery.model.ItemOrder;
+import it.cambi.hexad.bakery.model.OrderPack;
 import it.cambi.hexad.bakery.model.Pack;
 import it.cambi.hexad.bakery.request.Order;
 import it.cambi.hexad.bakery.request.OrderRequest;
@@ -12,6 +13,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 /**
  * @author luca
@@ -29,13 +31,13 @@ public class OrderService {
    */
   public Order bakeryOrder(OrderRequest orderRequest) {
 
-    if (null == orderRequest || orderRequest.getItems().isEmpty()) {
+    if (null == orderRequest || orderRequest.items().isEmpty()) {
       throw new BakeryException("Order can't be empty!");
     }
 
     LinkedList<ItemOrder> itemOrderList = new LinkedList<>();
 
-    for (Entry<String, Integer> itemToQuantityOrder : orderRequest.getItems().entrySet()) {
+    for (Entry<String, Integer> itemToQuantityOrder : orderRequest.items().entrySet()) {
       ItemType item =
           Arrays.stream(ItemType.values())
               .filter(i -> i.getCode().equals(itemToQuantityOrder.getKey()))
@@ -53,7 +55,30 @@ public class OrderService {
                 + item);
       }
 
-      itemOrderList.add(new ItemOrder(item.getCode(), packs));
+      List<OrderPack> orderPacks =
+          packs.stream()
+              .collect(
+                  Collectors.groupingBy(
+                      Pack::size, // Group by pack size
+                      Collectors.collectingAndThen(
+                          Collectors.toList(),
+                          groupedPacks ->
+                              new OrderPack(
+                                  groupedPacks.size(), // Count of packs
+                                  groupedPacks.get(0).size(), // Size (same for the group)
+                                  groupedPacks.stream() // Sum the prices
+                                      .mapToDouble(Pack::price)
+                                      .sum()))))
+              .values()
+              .stream()
+              .toList();
+
+      itemOrderList.add(
+          new ItemOrder(
+              item.getCode(),
+              itemToQuantityOrder.getValue(),
+              orderPacks.stream().map(OrderPack::price).reduce(0.0, Double::sum),
+              orderPacks));
     }
 
     return new Order(itemOrderList);

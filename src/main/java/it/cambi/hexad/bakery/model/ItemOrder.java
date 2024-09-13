@@ -6,4 +6,4 @@ import java.util.List;
 /**
  * @author luca
  */
-public record ItemOrder(String item, List<Pack> packs) {}
+public record ItemOrder(String item, int quantity, double totalPrice, List<OrderPack> packs) {}
